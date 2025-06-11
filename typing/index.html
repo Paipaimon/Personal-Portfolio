@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Typing</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+    
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            padding: 20px;
+            min-height: 100vh;
+        }
+    
+        .main, .history {
+            flex: 1;
+            min-width: 300px;
+            max-width: 600px;
+        }
+    
+        .box {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 25px;
+            height: 100%;
+        }
+    
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 24px;
+            text-align: center;
+        }
+    
+        h2 {
+            color: #3498db;
+            font-size: 28px;
+            text-align: center;
+            margin: 15px 0;
+        }
+    
+        #fixedText {
+            font-size: 24px;
+            line-height: 1.5;
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            min-height: 100px;
+            word-break: break-all;
+        }
+    
+        #showText {
+            font-size: 24px;
+            color: #666;
+            margin-bottom: 15px;
+            min-height: 36px;
+            padding: 5px;
+        }
+    
+        #inputText {
+            width: 100%;
+            padding: 12px 15px;
+            font-size: 18px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+    
+        #inputText:focus {
+            border-color: #3498db;
+        }
+    
+        #inputText::placeholder {
+            color: #aaa;
+        }
+    
+        #switch {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            display: block;
+            margin: 0 auto 20px;
+            transition: background-color 0.3s;
+        }
+    
+        #switch:hover {
+            background-color: #2980b9;
+        }
+    
+        #bestRecord {
+            font-size: 18px;
+            margin-bottom: 15px;
+            text-align: center;
+            color: #2c3e50;
+        }
+    
+        #bestRecordTime {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+    
+        #historyList {
+            list-style-type: none;
+        }
+    
+        #historyList li {
+            padding: 10px 15px;
+            margin-bottom: 8px;
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+        }
+    
+        #historyList li:first-child {
+            background-color: #e8f4fc;
+            font-weight: bold;
+        }
+    
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .main, .history {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="main">
+        <div class="box">
+            <h1>打字练习</h1>
+            <h2 id="timer">0.000s</h2>
+            <button id="switch"></button>
+            <div id="fixedText"></div>
+            <div id="showText"></div>
+            <input type="text" id="inputText" placeholder="开始输入..." autocomplete="off" />
+        </div>
+    </div>
+    <div class="history">
+        <div class="box">
+            <h1>历史记录</h1>
+            <div id="bestRecord">最高纪录: <span id="bestRecordTime">--</span></div>
+            <div id="history">
+                <ul id="historyList"></ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let timer;
+        let totalTime = 0;
+        let list = [
+            {id:1, text:"123456789"},
+            {id:2, text:"0246813579"},
+            {id:3, text:"ABCDEFGHIJKLMNOPQRSTUVWXYZ"},
+            {id:4, text:"The quick brown fox jumps over the lazy dog"},
+            {id:4, text:"QQWWEERRTTYYUUIIOOPPAASSDDFFGGHHJJKKLLZZXXCCVVBBNNMM"},
+        ];
+        // 切换文本
+        let typeText = list[0].text;
+        document.getElementById("fixedText").innerHTML = typeText;
+        document.getElementById("switch").textContent = list[0].id;
+        document.getElementById("switch").onclick = function () {
+            let index = list.findIndex(item => item.text === typeText);
+            index = (index + 1) % list.length;
+            typeText = list[index].text;
+            document.getElementById("fixedText").innerHTML = typeText;
+            document.getElementById("switch").textContent = list[index].id;
+            changeShowValue("");
+            updateFixedTextColor("");
+            clearInterval(timer);
+            document.getElementById("timer").textContent = "0.000s";
+            document.getElementById('bestRecordTime').textContent = '--'; // 重置最高纪录显示
+        }
+        // 文字判断（忽略大小写）
+        document.getElementById("inputText").oninput = function () {
+            let inputValue = document.getElementById("inputText").value;
+            changeShowValue(inputValue);
+            updateFixedTextColor(inputValue);
+            if (inputValue.toUpperCase() === typeText.toUpperCase()) {
+                document.getElementById("inputText").value = "";
+                const time = formatTime(totalTime);
+                addHistory(time);
+                updateBestRecord(time);
+                changeShowValue("");
+                clearInterval(timer);
+            } else if (inputValue.length === typeText.length) {
+                document.getElementById("inputText").value = "";
+                changeShowValue("");
+                addHistory("失败");
+                clearInterval(timer);
+            }
+            if (inputValue.length == 1) {
+                totalTime = 0;
+                clearInterval(timer);
+                timer = setInterval(() => {
+                    document.getElementById("timer").textContent = formatTime(totalTime);
+                    totalTime += 10;
+                }, 10);
+            } else if (inputValue.length == 0) {
+                clearInterval(timer);
+                document.getElementById("timer").textContent = "0.000s";
+            }
+        }
+        // 更新固定文本的颜色
+        function updateFixedTextColor(inputValue) {
+            let fixedText = document.getElementById("fixedText");
+            let typeText = fixedText.textContent;
+            fixedText.innerHTML = '';
+            inputValue = inputValue;
+            for (let i = 0; i < typeText.length; i++) {
+                let span = document.createElement('span');
+                span.textContent = typeText[i];
+
+                if (i < inputValue.length) {
+                    if (inputValue[i].toUpperCase() === typeText[i].toUpperCase()) {
+                        span.style.color = '#007BFF';
+                    } else {
+                        span.style.color = 'RED';
+                    }
+                }
+
+                fixedText.appendChild(span);
+            }
+        }
+        // 禁止粘贴
+        document.getElementById("inputText").onpaste = function (e) {
+            e.preventDefault();
+        }
+
+        function addHistory(value) {
+            const historyList = document.getElementById("historyList");
+            const li = document.createElement("li");
+            li.textContent = value;
+            historyList.insertBefore(li, historyList.firstChild); // 添加到列表的顶部
+
+            // 限制历史记录数量为 10
+            if (historyList.children.length > 10) {
+                historyList.removeChild(historyList.lastChild);
+            }
+        }
+
+        function updateBestRecord(currentTime) {
+            // 每次都重置最高纪录
+            let bestRecordTime = document.getElementById('bestRecordTime');
+            if (bestRecordTime.textContent === '--' || currentTime < bestRecordTime.textContent) {
+                bestRecordTime.textContent = currentTime;
+            }
+        }
+
+        // 页面加载时，显示最高纪录
+        window.onload = function() {
+            document.getElementById('bestRecordTime').textContent = '--'; // 初始化最高纪录显示
+        }
+        
+        // 显示输入的内容
+        function changeShowValue(value) {
+            document.getElementById("showText").innerHTML = value;
+        }
+        // 格式化时间
+        function formatTime(milliseconds) {
+            let seconds = Math.floor(milliseconds / 1000);
+            let ms = milliseconds % 1000;
+            return `${seconds}.${ms.toString().padStart(3, '0')}s`;
+        }
+        
+    </script>
+</body>
+
+</html>

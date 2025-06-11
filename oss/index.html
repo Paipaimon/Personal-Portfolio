@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OSS File Browser</title>
+  <style>
+    body {
+      font-family: sans-serif;
+    }
+
+    .file-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 5px;
+    }
+
+    .file-item a {
+      margin-right: 10px;
+    }
+
+    .directory {
+      font-weight: bold;
+      cursor: pointer;
+      color: blue;
+      /* Optional: Style directories differently */
+    }
+
+    .breadcrumb {
+      margin-bottom: 10px;
+    }
+
+    .breadcrumb a {
+      text-decoration: none;
+    }
+
+    .breadcrumb span {
+      margin: 0 5px;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>OSS File Browser</h1>
+
+  <div id="breadcrumb" class="breadcrumb">
+    <a href="#" onclick="loadDirectory('')">Home</a>
+    <span>/</span>
+  </div>
+
+  <div id="fileList"></div>
+
+  <footer style="position: fixed; left: 0; bottom: 0; width: 100%; text-align: center; padding: 10px; font-size: small; color: #777; background-color: #f8f8f8; border-top: 1px solid #eee;">
+    <p style="margin: 0;">Copyright &copy; 2023 Jlands. All rights reserved.</p>
+    <p style="margin: 0;"><a href="http://beian.miit.gov.cn/" target="_blank" style="color: #777; text-decoration: none;">蜀ICP备2022028857号</a></p>
+  </footer>
+  
+  
+
+  <script>
+    const fileListDiv = document.getElementById('fileList');
+    const breadcrumbDiv = document.getElementById('breadcrumb');
+    let currentPath = ''; // Tracks the current directory
+
+    // Function to update the breadcrumb navigation
+    function updateBreadcrumb(path) {
+      let breadcrumbHtml = `<a href="#" onclick="loadDirectory('')">Home</a> <span>/</span>`;
+      if (path) {
+        const parts = path.split('/').filter(part => part !== ''); // Split the path into parts and remove empty strings
+        let currentPathBuilder = '';
+
+        for (let i = 0; i < parts.length; i++) {
+          currentPathBuilder += parts[i] + '/';
+          breadcrumbHtml += `<a href="#" onclick="loadDirectory('${currentPathBuilder.slice(0, -1)}')">${parts[i]}</a>`; // Remove trailing slash
+          if (i < parts.length - 1) {
+            breadcrumbHtml += `<span>/</span>`;
+          }
+        }
+      }
+      breadcrumbDiv.innerHTML = breadcrumbHtml;
+    }
+
+    // Function to load directory content from the API
+    async function loadDirectory(prefix) {
+      currentPath = prefix;
+      updateBreadcrumb(currentPath);  // Update breadcrumb based on prefix
+      try {
+        const response = await fetch(`http://www.jackli.fun:2000/api/list?prefix=${prefix}`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        displayFiles(data);
+      } catch (error) {
+        fileListDiv.innerHTML = `<p>Error loading files: ${error.message}</p>`;
+        console.error("Error fetching data:", error);
+      }
+    }
+
+    // Function to display files and directories in the HTML
+    function displayFiles(data) {
+      fileListDiv.innerHTML = ''; // Clear previous content
+
+      // Display directories
+      if (data.directories && data.directories.length > 0) {
+        data.directories.forEach(dir => {
+          const dirName = dir.replace(currentPath, '').replace('/', ''); // Extract just the directory name
+          const dirElement = document.createElement('div');
+          dirElement.classList.add('file-item');
+          dirElement.innerHTML = `<span class="directory" onclick="loadDirectory('${dir}')">📁 ${dirName}</span>`;
+          fileListDiv.appendChild(dirElement);
+        });
+      }
+
+      // Display files
+      if (data.files && data.files.length > 0) {
+        data.files.forEach(file => {
+          const fileElement = document.createElement('div');
+          fileElement.classList.add('file-item');
+          fileElement.innerHTML = `
+            <span>📄 ${file.name}</span>
+            <span>&nbsp;(${formatBytes(file.size)})&nbsp;</span>
+            <a href="${file.url}" target="_blank">Download</a>
+          `;
+          fileListDiv.appendChild(fileElement);
+        });
+      }
+
+      if ((!data.directories || data.directories.length === 0) && (!data.files || data.files.length === 0)) {
+        fileListDiv.innerHTML = '<p>No files or directories found.</p>';
+      }
+    }
+
+    // Helper function to format file size
+    function formatBytes(bytes, decimals = 2) {
+      if (bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const dm = decimals < 0 ? 0 : decimals;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+    }
+
+    // Initial load: Root directory
+    loadDirectory('');
+  </script>
+</body>
+
+</html>

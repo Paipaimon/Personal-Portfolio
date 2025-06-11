@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width; initial-scale=1.0; maximum-scale=1.0">
+		<title>点击游戏</title>
+		<style type="text/css">
+			*{
+				user-select: none;
+				overflow: hidden;
+			}
+			body {
+				margin: 0;
+				padding: 0;
+				background: #f0f0f0;
+				font-family: "微软雅黑", sans-serif;
+			}
+			#gameContainer {
+				position: relative;
+				width: 100vw;
+				height: 100vh;
+				overflow: hidden;
+			}
+			#box {
+				width: 150px;
+				height: 150px;
+				border-radius: 500px;
+				background-color: #ff4444;
+				position: absolute;
+				left: 200px;
+				top: 200px;
+				transition: all 0.8s ease;/* 移动速度 */
+				box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+			}
+			#box:hover {
+				transform: scale(1.1);
+			}
+			#box:active {
+				transform: scale(0.9);
+			}
+			#box span {
+				width: 150px;
+				height: 150px;
+				line-height: 150px;
+				text-align: center;
+				font-size: 24px;
+				font-weight: bold;
+				color: white;
+				user-select: none;
+				cursor: crosshair;
+				display: block;
+			}
+			#score {
+				position: fixed;
+				top: 20px;
+				left: 20px;
+				font-size: 24px;
+				color: #333;
+			}
+			#timer {
+				position: fixed;
+				top: 20px;
+				right: 20px;
+				font-size: 24px;
+				color: #333;
+			}
+			#endScreen {
+				position: fixed;
+				top: 0;
+				left: 0;
+				width: 100vw;
+				height: 100vh;
+				background: rgba(0,0,0,0.8);
+				display: none;
+				flex-direction: column;
+				justify-content: center;
+				align-items: center;
+				color: white;
+				z-index: 1000;
+			}
+			#endScreen h1 {
+				font-size: 48px;
+				margin-bottom: 20px;
+			}
+			#endScreen p {
+				font-size: 20px;
+				margin: 10px 0;
+				text-align: center;
+			}
+			#deviceInfo {
+				background: rgba(255,255,255,0.1);
+				padding: 20px;
+				border-radius: 10px;
+				margin: 20px 0;
+				text-align: left;
+			}
+			#deviceInfo p {
+				margin: 8px 0;
+				font-size: 16px;
+			}
+			button {
+				padding: 15px 30px;
+				font-size: 20px;
+				background: #4CAF50;
+				color: white;
+				border: none;
+				border-radius: 5px;
+				cursor: pointer;
+				margin: 10px;
+			}
+			button:hover {
+				background: #45a049;
+			}
+			.score-popup {
+				position: absolute;
+				color: #4CAF50;
+				font-size: 24px;
+				text-shadow: 1px 1px 1px rgba(0,0,0,0.5);
+				font-weight: bold;
+				pointer-events: none;
+				animation: popup 1s ease-out forwards;
+			}
+			@keyframes popup {
+				0% {
+					transform: translateY(0) scale(1);
+					opacity: 1;
+				}
+				100% {
+					transform: translateY(-50px) scale(1.5);
+					opacity: 0;
+				}
+			}
+		</style>
+		<script type="text/javascript">
+			let score = 0;
+			let timeLeft = 30;
+			let gameInterval;
+			let difficulty = 1;
+			let isPlaying = false;
+			let hasStarted = false;
+			let lastMoveTime = 0;
+			const MOVE_COOLDOWN = 100;//加分冷却时间
+
+			function startGame() {
+				if (hasStarted) return;
+				hasStarted = true;
+				isPlaying = true;
+				score = 0;
+				timeLeft = 30;
+				difficulty = 1;
+				updateScore();
+				updateTimer();
+				gameInterval = setInterval(updateGame, 1000);
+			}
+
+			function updateGame() {
+				timeLeft--;
+				updateTimer();
+				difficulty += 0.1;
+				
+				if (timeLeft <= 0) {
+					endGame();
+				}
+			}
+
+			function updateScore() {
+				document.getElementById('score').textContent = `分数: ${score}`;
+			}
+
+			function updateTimer() {
+				document.getElementById('timer').textContent = `时间: ${timeLeft}秒`;
+			}
+
+			function onMouseMove() {
+				if (!isPlaying) return;
+				
+				const currentTime = Date.now();
+				if (currentTime - lastMoveTime < MOVE_COOLDOWN) {
+					return;
+				}
+				
+				lastMoveTime = currentTime;
+				score++;
+				updateScore();
+				createScorePopup(event,1);
+				
+				move(document.getElementById("box"));
+				//添加音效
+				const audio = new Audio('audio/bow.ogg');
+				audio.play();
+			}
+
+			function onClick(event) {
+				if (!isPlaying) return;
+				score += 5;
+				updateScore();
+				createScorePopup(event,5);
+				move(document.getElementById("box"));
+				//添加音效
+				const audio = new Audio('audio/successful_hit.ogg');
+				audio.play();
+			}
+
+			function createScorePopup(event,score) {
+				const popup = document.createElement('div');
+				popup.className = 'score-popup';
+				popup.textContent = '+' + score;
+				popup.style.left = (event.clientX - 20) + 'px';
+				popup.style.top = (event.clientY - 20) + 'px';
+				document.body.appendChild(popup);
+				
+				setTimeout(() => {
+					popup.remove();
+				}, 1000);
+			}
+
+			function move(obj) {
+				if (!isPlaying) return;
+				const width = window.innerWidth;
+				const height = window.innerHeight;
+				const boxSize = 150;
+				const randomHeight = Math.floor(Math.random() * (height - boxSize));
+				const randomWidth = Math.floor(Math.random() * (width - boxSize));
+				
+				obj.style.left = randomWidth + "px";
+				obj.style.top = randomHeight + "px";
+				
+				// 随机改变颜色
+				const hue = Math.floor(Math.random() * 360);
+				obj.style.backgroundColor = `hsl(${hue}, 70%, 60%)`;
+			}
+
+			function getDeviceInfo() {
+				const userAgent = navigator.userAgent;
+				const screenWidth = window.screen.width;
+				const screenHeight = window.screen.height;
+				const windowWidth = window.innerWidth;
+				const windowHeight = window.innerHeight;
+				const devicePixelRatio = window.devicePixelRatio;
+				
+				return {
+					userAgent,
+					screenSize: `${screenWidth} x ${screenHeight}`,
+					windowSize: `${windowWidth} x ${windowHeight}`,
+					pixelRatio: devicePixelRatio
+				};
+			}
+
+			function endGame() {
+				isPlaying = false;
+				clearInterval(gameInterval);
+				const deviceInfo = getDeviceInfo();
+				
+				document.getElementById('endScreen').style.display = 'flex';
+				document.getElementById('finalScore').textContent = `最终得分: ${score}`;
+				
+				const deviceInfoHtml = `
+					<p>设备信息: ${deviceInfo.userAgent}</p>
+					<p>屏幕分辨率: ${deviceInfo.screenSize}</p>
+					<p>窗口大小: ${deviceInfo.windowSize}</p>
+					<p>设备像素比: ${deviceInfo.pixelRatio}</p>
+				`;
+				document.getElementById('deviceInfo').innerHTML = deviceInfoHtml;
+			}
+
+			function restartGame() {
+				hasStarted = false;
+				document.getElementById('endScreen').style.display = 'none';
+				startGame();
+			}
+		</script>
+	</head>
+	<body> 
+		<div id="gameContainer">
+			<div id="score">分数: 0</div>
+			<div id="timer">时间: 30秒</div>
+			<div id="box" 
+				onmousemove="onMouseMove()" 
+				onmouseenter="startGame()" 
+				onclick="onClick(event)">
+				<span>来啊</span>
+			</div>
+		</div>
+
+		<div id="endScreen">
+			<h1>游戏结束</h1>
+			<p id="finalScore">最终得分: 0</p>
+			<div id="deviceInfo"></div>
+			<button onclick="restartGame()">再玩一次</button>
+		</div>
+	</body>
+</html>
+

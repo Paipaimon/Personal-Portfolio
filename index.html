@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projects Index</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+
+        .project-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .project-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s;
+        }
+
+        .project-item:hover {
+            transform: translateY(-5px);
+        }
+
+        a {
+            color: #2196F3;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>项目列表</h1>
+    <div class="project-list" id="projectList"></div>
+
+    <script>
+        const projects = [
+            'ClickHere',
+            'ClickHere2',
+            'ABC',
+            'PinkBang',
+            'cps',
+            'typing',
+            'counter'
+        ];
+
+        window.onload = function () {
+            const projectList = document.getElementById('projectList');
+            projects.forEach(project => {
+                const div = document.createElement('div');
+                div.className = 'project-item';
+
+                const link = document.createElement('a');
+                link.href = `./${project}/index.html`;
+                link.textContent = project;
+
+                div.appendChild(link);
+                projectList.appendChild(div);
+            });
+        };
+    </script>
+</body>
+
+</html>
