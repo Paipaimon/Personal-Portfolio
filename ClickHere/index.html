@@ -140,7 +140,8 @@
 			let hasStarted = false;
 			let lastMoveTime = 0;
 			const MOVE_COOLDOWN = 100;//加分冷却时间
-
+			
+				
 			function startGame() {
 				if (hasStarted) return;
 				hasStarted = true;
@@ -186,8 +187,8 @@
 				
 				move(document.getElementById("box"));
 				//添加音效
-				const audio = new Audio('audio/bow.ogg');
-				audio.play();
+				const move_audio = new Audio('audio/bow.ogg');
+				move_audio.play();
 			}
 
 			function onClick(event) {
@@ -197,8 +198,8 @@
 				createScorePopup(event,5);
 				move(document.getElementById("box"));
 				//添加音效
-				const audio = new Audio('audio/successful_hit.ogg');
-				audio.play();
+				const click_audio = new Audio('audio/successful_hit.ogg');
+				click_audio.play();
 			}
 
 			function createScorePopup(event,score) {
@@ -278,10 +279,10 @@
 				onmousemove="onMouseMove()" 
 				onmouseenter="startGame()" 
 				onclick="onClick(event)">
-				<span>来啊</span>
+				<span>点我</span>
 			</div>
 		</div>
-
+		
 		<div id="endScreen">
 			<h1>游戏结束</h1>
 			<p id="finalScore">最终得分: 0</p>

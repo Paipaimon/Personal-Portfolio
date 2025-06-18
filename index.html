@@ -6,76 +6,396 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Projects Index</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
-        h1 {
-            color: #333;
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
             text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            margin-bottom: 20px;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 20px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.8;
         }
 
         .project-list {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 20px;
-            padding: 20px;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 25px;
+            padding: 0;
         }
 
         .project-item {
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            transition: transform 0.2s;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .project-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            transition: left 0.5s;
+        }
+
+        .project-item:hover::before {
+            left: 100%;
         }
 
         .project-item:hover {
-            transform: translateY(-5px);
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
         }
 
-        a {
-            color: #2196F3;
+        .project-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .project-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 16px;
+            font-size: 20px;
+            color: white;
+            font-weight: bold;
+        }
+
+        .project-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 4px;
+        }
+
+        .project-type {
+            font-size: 0.85rem;
+            color: #718096;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .project-description {
+            color: #4a5568;
+            line-height: 1.6;
+            margin-bottom: 16px;
+            font-size: 0.95rem;
+        }
+
+        .project-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .tag {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .project-link {
+            display: inline-flex;
+            align-items: center;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .project-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
             text-decoration: none;
         }
 
-        a:hover {
-            text-decoration: underline;
+        .project-link::after {
+            content: '→';
+            margin-left: 8px;
+            transition: transform 0.3s ease;
+        }
+
+        .project-link:hover::after {
+            transform: translateX(4px);
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2.5rem;
+            }
+
+            .stats {
+                gap: 20px;
+            }
+
+            .project-list {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .project-item {
+                padding: 20px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .stats {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .project-header {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .project-icon {
+                margin-right: 0;
+                margin-bottom: 12px;
+            }
         }
     </style>
 </head>
 
 <body>
-    <h1>项目列表</h1>
-    <div class="project-list" id="projectList"></div>
+    <div class="container">
+        <div class="header">
+            <h1>我的作品集</h1>
+            <p>探索创意与技术的完美结合</p>
+            <div class="stats">
+                <div class="stat-item">
+                    <span class="stat-number" id="projectCount">0</span>
+                    <span class="stat-label">项目总数</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="techCount">0</span>
+                    <span class="stat-label">技术栈</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="categoryCount">0</span>
+                    <span class="stat-label">分类</span>
+                </div>
+            </div>
+        </div>
+        <div class="project-list" id="projectList"></div>
+    </div>
 
     <script>
         const projects = [
-            'ClickHere',
-            'ClickHere2',
-            'ABC',
-            'PinkBang',
-            'cps',
-            'typing',
-            'counter'
+            {
+                name: 'ABC',
+                title: 'ABC 交互应用',
+                type: 'Tool',
+                description: '这是一个专门用于查询英文缩写和网络用语含义的Web应用工具，采用现代化的界面设计和交互体验。',
+                tags: ['Vue.js', 'JavaScript', 'CSS3','API'],
+                icon: 'A',
+                folder: 'ABC'
+            },
+            {
+                name: 'ClickHere',
+                title: 'ClickHere 游戏',
+                type: 'Game',
+                description: '一个有趣的点击游戏，包含音效和动画效果，测试你的反应速度和准确性。',
+                tags: ['HTML5', 'CSS3', 'Audio'],
+                icon: '🎮',
+                folder: 'ClickHere'
+            },
+            {
+                name: 'PinkBang',
+                title: 'PinkBang 特效',
+                type: 'Animation',
+                description: '炫酷的视觉特效展示，使用纯CSS3实现的动画效果和粒子系统。',
+                tags: ['CSS3', 'Animation', 'Effects'],
+                icon: '💥',
+                folder: 'PinkBang'
+            },
+            {
+                name: 'Counter',
+                title: '计数器应用',
+                type: 'Full Stack',
+                description: '是一个基于 Web 的数字小球判断游戏，玩家需要快速准确地判断屏幕上显示的小球数量。',
+                tags: ['Node.js', 'Express', 'JavaScript','MongoDB'],
+                icon: '📊',
+                folder: 'counter'
+            },
+            {
+                name: 'CPS',
+                title: 'CPS 测试器',
+                type: 'Tool',
+                description: '点击速度测试工具，精确测量每秒点击次数，提供详细的统计数据。',
+                tags: ['JavaScript', 'Performance', 'Testing'],
+                icon: '⚡',
+                folder: 'cps'
+            },
+            {
+                name: 'Typing',
+                title: '打字练习',
+                type: 'Education',
+                description: '在线打字练习工具，帮助提高打字速度和准确性，支持多种练习模式。',
+                tags: ['JavaScript', 'Education', 'UI/UX'],
+                icon: '⌨️',
+                folder: 'typing'
+            },
+            {
+                name: 'Error Choice',
+                title: '错误选择',
+                type: 'Interactive',
+                description: '交互式选择游戏，通过有趣的方式展示不同选择的后果。',
+                tags: ['HTML5', 'JavaScript', 'Interactive'],
+                icon: '❓',
+                folder: 'error-choice'
+            },
+            {
+                name: 'Favorites Style',
+                title: '收藏夹样式',
+                type: 'Tool',
+                description: '美化浏览器收藏夹的样式工具，提供现代化的书签管理界面。',
+                tags: ['CSS3', 'Bookmarks', 'Styling'],
+                icon: '⭐',
+                folder: 'favorites-style'
+            },
+            {
+                name: 'OSS',
+                title: 'OSS 管理器',
+                type: 'Utility',
+                description: '对象存储服务管理工具，包含文件上传、管理和Node.js后端支持。',
+                tags: ['Node.js', 'File Upload', 'Storage'],
+                icon: '☁️',
+                folder: 'oss'
+            }
         ];
 
+        function updateStats() {
+            const projectCount = projects.length;
+            const allTags = projects.flatMap(p => p.tags);
+            const uniqueTags = [...new Set(allTags)];
+            const categories = [...new Set(projects.map(p => p.type))];
+
+            document.getElementById('projectCount').textContent = projectCount;
+            document.getElementById('techCount').textContent = uniqueTags.length;
+            document.getElementById('categoryCount').textContent = categories.length;
+        }
+
+        function createProjectCard(project) {
+            const projectDiv = document.createElement('div');
+            projectDiv.className = 'project-item';
+
+            projectDiv.innerHTML = `
+                <div class="project-header">
+                    <div class="project-icon">${project.icon}</div>
+                    <div>
+                        <div class="project-title">${project.title}</div>
+                        <div class="project-type">${project.type}</div>
+                    </div>
+                </div>
+                <div class="project-description">${project.description}</div>
+                <div class="project-tags">
+                    ${project.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+                </div>
+                <a href="./${project.folder}/index.html" class="project-link">查看项目</a>
+            `;
+
+            return projectDiv;
+        }
+
         window.onload = function () {
+            updateStats();
+            
             const projectList = document.getElementById('projectList');
             projects.forEach(project => {
-                const div = document.createElement('div');
-                div.className = 'project-item';
+                const projectCard = createProjectCard(project);
+                projectList.appendChild(projectCard);
+            });
 
-                const link = document.createElement('a');
-                link.href = `./${project}/index.html`;
-                link.textContent = project;
-
-                div.appendChild(link);
-                projectList.appendChild(div);
+            // 添加数字动画效果
+            const statNumbers = document.querySelectorAll('.stat-number');
+            statNumbers.forEach(stat => {
+                const target = parseInt(stat.textContent);
+                let current = 0;
+                const increment = target / 30;
+                const timer = setInterval(() => {
+                    current += increment;
+                    if (current >= target) {
+                        current = target;
+                        clearInterval(timer);
+                    }
+                    stat.textContent = Math.floor(current);
+                }, 50);
             });
         };
     </script>

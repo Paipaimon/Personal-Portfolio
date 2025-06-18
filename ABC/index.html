@@ -2,47 +2,169 @@
 <html>
 	<head>
 		<meta charset="utf-8">
-		<title>ABC</title>
-		
-	</head>
-	<body style="font-size: 24px;font-family:consolas;">
-		AA AB AC AD AE AF AG AH AI AJ AK AL AM AN AO AP AQ AR AS AT AW AX AY AZ<br>
-		BA BB BC BD BE BF BG BH BI BJ BK BL BM BN BO BP BQ BR BS BT BW BX BY BZ<br>
-		CA CB CC CD CE CF CG CH CI CJ CK CL CM CN CO CP CQ CR CS CT CW CX CY CZ<br>
-		DA DB DC DD DE DF DG DH DI DJ DK DL DM DN DO DP DQ DR DS DT DW DX DY DZ<br>
-		EA EB EC ED EE EF EG EH EI EJ EK EL EM EN EO EP EQ ER ES ET EW EX EY EZ<br>
-		FA FB FC FD FE FF FG FH FI FJ FK FL FM FN FO FP FQ FR FS FT FW FX FY FZ<br>
-		GA GB GC GD GE GF GG GH GI GJ GK GL GM GN GO GP GQ GR GS GT GW GX GY GZ<br>
-		HA HB HC HD HE HF HG HH HI HJ HK HL HM HN HO HP HQ HR HS HT HW HX HY HZ<br>
-		IA IB IC ID IE IF IG IH II IJ IK IL IM IN IO IP IQ IR IS IT IW IX IY IZ<br>
-		JA JB JC JD JE JF JG JH JI JJ JK JL JM JN JO JP JQ JR JS JT JW JX JY JZ<br>
-		KA KB KC KD KE KF KG KH KI KJ KK KL KM KN KO KP KQ KR KS KT KW KX KY KZ<br>
-		LA LB LC LD LE LF LG LH LI LJ LK LL LM LN LO LP LQ LR LS LT LW LX LY LZ<br>
-		MA MB MC MD ME MF MG MH MI MJ MK ML MM MN MO MP MQ MR MS MT MW MX MY MZ<br>
-		NA NB NC ND NE NF NG NH NI NJ NK NL NM NN NO NP NQ NR NS NT NW NX NY NZ<br>
-		OA OB OC OD OE OF OG OH OI OJ OK OL OM ON OO OP OQ OR OS OT OW OX OY OZ<br>
-		PA PB PC PD PE PF PG PH PI PJ PK PL PM PN PO PP PQ PR PS PT PW PX PY PZ<br>
-		QA QB QC QD QE QF QG QH QI QJ QK QL QM QN QO QP QQ QR QS QT QW QX QY QZ<br>
-		RA RB RC RD RE RF RG RH RI RJ RK RL RM RN RO RP RQ RR RS RT RW RX RY RZ<br>
-		SA SB SC SD SE SF SG SH SI SJ SK SL SM SN SO SP SQ SR SS ST SW SX SY SZ<br>
-		TA TB TC TD TE TF TG TH TI TJ TK TL TM TN TO TP TQ TR TS TT TW TX TY TZ<br>
-		WA WB WC WD WE WF WG WH WI WJ WK WL WM WN WO WP WQ WR WS WT WW WX WY WZ<br>
-		XA XB XC XD XE XF XG XH XI XJ XK XL XM XN XO XP XQ XR XS XT XW XX XY XZ<br>
-		YA YB YC YD YE YF YG YH YI YJ YK YL YM YN YO YP YQ YR YS YT YW YX YY YZ<br>
-		ZA ZB ZC ZD ZE ZF ZG ZH ZI ZJ ZK ZL ZM ZN ZO ZP ZQ ZR ZS ZT ZW ZX ZY ZZ<br>
-		<div class="">
-			<input  style="height:40px;" id="value"  type="text" placeholder="划取字母查看解释"  oninput="change()"/>
-			<div style="height:400px;" id="text">在上方输入缩写划取查看解释</div>
-		</div>
-	    <script>
-	        function change(){
-	            document.querySelector('#text').innerHTML = document.querySelector('#value').value
-				if(document.querySelector('#value').value.length == 0){
-					document.querySelector('#text').innerHTML = "在上方输入缩写划取查看解释"
+		<title>ABC缩写查询工具</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<style>
+			body {
+				font-size: 24px;
+				font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+				margin: 0;
+				padding: 20px;
+				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+				min-height: 100vh;
+				color: #333;
+			}
+			.container {
+				max-width: 1200px;
+				margin: 0 auto;
+				background: rgba(255, 255, 255, 0.95);
+				border-radius: 15px;
+				padding: 30px;
+				box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+			}
+			.title {
+				text-align: center;
+				color: #4a5568;
+				margin-bottom: 30px;
+				font-size: 32px;
+				font-weight: bold;
+			}
+			.abc-grid {
+				line-height: 1.8;
+				margin-bottom: 30px;
+				padding: 20px;
+				background: #f8f9fa;
+				border-radius: 10px;
+				border: 2px solid #e9ecef;
+				max-height: 300px;
+				overflow-y: auto;
+			}
+			.abc-grid::-webkit-scrollbar {
+				width: 8px;
+			}
+			.abc-grid::-webkit-scrollbar-track {
+				background: #f1f1f1;
+				border-radius: 4px;
+			}
+			.abc-grid::-webkit-scrollbar-thumb {
+				background: #888;
+				border-radius: 4px;
+			}
+			.search-section {
+				margin-bottom: 20px;
+			}
+			.search-input {
+				width: 100%;
+				height: 50px;
+				padding: 0 20px;
+				font-size: 18px;
+				border: 2px solid #e2e8f0;
+				border-radius: 25px;
+				outline: none;
+				transition: all 0.3s ease;
+				box-sizing: border-box;
+			}
+			.search-input:focus {
+				border-color: #667eea;
+				box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+			}
+			.result-area {
+				min-height: 200px;
+				padding: 25px;
+				background: #ffffff;
+				border: 2px solid #e2e8f0;
+				border-radius: 15px;
+				font-size: 20px;
+				line-height: 1.6;
+				box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+				transition: all 0.3s ease;
+			}
+			.result-area.has-content {
+				border-color: #48bb78;
+				background: #f0fff4;
+			}
+			.clear-btn {
+				margin-top: 15px;
+				padding: 10px 25px;
+				background: #e53e3e;
+				color: white;
+				border: none;
+				border-radius: 20px;
+				cursor: pointer;
+				font-size: 16px;
+				transition: all 0.3s ease;
+			}
+			.clear-btn:hover {
+				background: #c53030;
+				transform: translateY(-2px);
+			}
+			.stats {
+				margin-top: 15px;
+				font-size: 14px;
+				color: #718096;
+				text-align: center;
+			}
+			@media (max-width: 768px) {
+				body {
+					padding: 10px;
+					font-size: 18px;
 				}
-	        }
-
-	    </script>
+				.container {
+					padding: 20px;
+				}
+				.title {
+					font-size: 24px;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<h1 class="title">🔤 ABC缩写查询工具</h1>
+			
+			<div class="abc-grid">
+				AA AB AC AD AE AF AG AH AI AJ AK AL AM AN AO AP AQ AR AS AT AW AX AY AZ<br>
+				BA BB BC BD BE BF BG BH BI BJ BK BL BM BN BO BP BQ BR BS BT BW BX BY BZ<br>
+				CA CB CC CD CE CF CG CH CI CJ CK CL CM CN CO CP CQ CR CS CT CW CX CY CZ<br>
+				DA DB DC DD DE DF DG DH DI DJ DK DL DM DN DO DP DQ DR DS DT DW DX DY DZ<br>
+				EA EB EC ED EE EF EG EH EI EJ EK EL EM EN EO EP EQ ER ES ET EW EX EY EZ<br>
+				FA FB FC FD FE FF FG FH FI FJ FK FL FM FN FO FP FQ FR FS FT FW FX FY FZ<br>
+				GA GB GC GD GE GF GG GH GI GJ GK GL GM GN GO GP GQ GR GS GT GW GX GY GZ<br>
+				HA HB HC HD HE HF HG HH HI HJ HK HL HM HN HO HP HQ HR HS HT HW HX HY HZ<br>
+				IA IB IC ID IE IF IG IH II IJ IK IL IM IN IO IP IQ IR IS IT IW IX IY IZ<br>
+				JA JB JC JD JE JF JG JH JI JJ JK JL JM JN JO JP JQ JR JS JT JW JX JY JZ<br>
+				KA KB KC KD KE KF KG KH KI KJ KK KL KM KN KO KP KQ KR KS KT KW KX KY KZ<br>
+				LA LB LC LD LE LF LG LH LI LJ LK LL LM LN LO LP LQ LR LS LT LW LX LY LZ<br>
+				MA MB MC MD ME MF MG MH MI MJ MK ML MM MN MO MP MQ MR MS MT MW MX MY MZ<br>
+				NA NB NC ND NE NF NG NH NI NJ NK NL NM NN NO NP NQ NR NS NT NW NX NY NZ<br>
+				OA OB OC OD OE OF OG OH OI OJ OK OL OM ON OO OP OQ OR OS OT OW OX OY OZ<br>
+				PA PB PC PD PE PF PG PH PI PJ PK PL PM PN PO PP PQ PR PS PT PW PX PY PZ<br>
+				QA QB QC QD QE QF QG QH QI QJ QK QL QM QN QO QP QQ QR QS QT QW QX QY QZ<br>
+				RA RB RC RD RE RF RG RH RI RJ RK RL RM RN RO RP RQ RR RS RT RW RX RY RZ<br>
+				SA SB SC SD SE SF SG SH SI SJ SK SL SM SN SO SP SQ SR SS ST SW SX SY SZ<br>
+				TA TB TC TD TE TF TG TH TI TJ TK TL TM TN TO TP TQ TR TS TT TW TX TY TZ<br>
+				WA WB WC WD WE WF WG WH WI WJ WK WL WM WN WO WP WQ WR WS WT WW WX WY WZ<br>
+				XA XB XC XD XE XF XG XH XI XJ XK XL XM XN XO XP XQ XR XS XT XW XX XY XZ<br>
+				YA YB YC YD YE YF YG YH YI YJ YK YL YM YN YO YP YQ YR YS YT YW YX YY YZ<br>
+				ZA ZB ZC ZD ZE ZF ZG ZH ZI ZJ ZK LL ZM ZN ZO ZP ZQ ZR ZS ZT ZW ZX ZY ZZ<br>
+			</div>
+			
+			<div class="search-section">
+				<input class="search-input" id="value" type="text" placeholder="🔍 输入缩写划词查看解释 (如: LOL, OMG, WTF...)" oninput="change()" autocomplete="off"/>
+				<button class="clear-btn" onclick="clearInput()" style="display: none;" id="clearBtn">清空</button>
+			</div>
+			
+			<div class="result-area" id="text">
+				<div style="text-align: center; color: #718096;">
+					<p>💡 在上方输入缩写查看解释</p>
+					<p style="font-size: 16px; margin-top: 10px;">支持常见网络用语、英文缩写等</p>
+				</div>
+			</div>
+			
+			<div class="stats" id="stats"></div>
+		</div>
+		
+		<script src="js/script.js"></script>
 		<script src="js/vue.min.js"></script>
 		<script src="https://lab.magiconch.com/nbnhhsh/nbnhhsh.user.js"></script>
 	</body>

@@ -2,17 +2,18 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Typing</title>
+    <title>打字练习</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
         }
     
         body {
-            background-color: #f5f7fa;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: #333;
             display: flex;
             flex-wrap: wrap;
@@ -20,96 +21,549 @@
             gap: 20px;
             padding: 20px;
             min-height: 100vh;
+            position: relative;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="%23ffffff" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>') repeat;
+            pointer-events: none;
+            z-index: -1;
         }
     
-        .main, .history {
-            flex: 1;
-            min-width: 300px;
-            max-width: 600px;
+        .main {
+            width: 100%;
+            max-width: 700px;
         }
     
         .box {
-            background-color: white;
-            border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            padding: 25px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 30px;
             height: 100%;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .box:hover::before {
+            left: 100%;
+        }
+        
+        .box:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
         }
     
         h1 {
-            color: #2c3e50;
-            margin-bottom: 20px;
-            font-size: 24px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 25px;
+            font-size: 28px;
             text-align: center;
+            font-weight: 700;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+        
+        h1::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50px;
+            height: 3px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border-radius: 2px;
         }
     
         h2 {
-            color: #3498db;
-            font-size: 28px;
+            color: #667eea;
+            font-size: 32px;
             text-align: center;
-            margin: 15px 0;
+            margin: 20px 0;
+            font-weight: 600;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
         }
     
         #fixedText {
             font-size: 24px;
-            line-height: 1.5;
-            margin: 20px 0;
-            padding: 15px;
-            background-color: #f8f9fa;
-            border-radius: 8px;
-            min-height: 100px;
+            line-height: 1.8;
+            margin: 25px 0;
+            padding: 25px 30px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 249, 250, 0.9) 100%);
+            border-radius: 20px;
+            min-height: 140px;
             word-break: break-all;
+            border: 2px solid rgba(102, 126, 234, 0.15);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            position: relative;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+        
+        #fixedText::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(102, 126, 234, 0.1), transparent);
+            transition: left 0.8s ease;
+        }
+        
+        #fixedText:hover::after {
+            left: 100%;
+        }
+        
+        #fixedText:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+            border-color: rgba(102, 126, 234, 0.25);
+        }
+        
+        #fixedText::before {
+            content: '📝';
+            position: absolute;
+            top: -10px;
+            left: 15px;
+            background: white;
+            padding: 0 10px;
+            font-size: 16px;
         }
     
         #showText {
-            font-size: 24px;
-            color: #666;
-            margin-bottom: 15px;
-            min-height: 36px;
-            padding: 5px;
+            font-size: 26px;
+            color: #667eea;
+            margin-bottom: 25px;
+            min-height: 50px;
+            padding: 18px 25px;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.05) 100%);
+            border-radius: 15px;
+            border: 2px solid rgba(102, 126, 234, 0.15);
+            border-left: 5px solid #667eea;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.1);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        #showText::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #667eea, #764ba2, #667eea);
+            background-size: 200% 100%;
+            animation: shimmer 2s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        
+        #showText:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.15);
+            border-left-color: #764ba2;
         }
     
         #inputText {
             width: 100%;
-            padding: 12px 15px;
-            font-size: 18px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
+            padding: 20px 25px;
+            font-size: 22px;
+            border: 3px solid rgba(233, 236, 239, 0.8);
+            border-radius: 18px;
             outline: none;
-            transition: border-color 0.3s;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 249, 250, 0.9) 100%);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            position: relative;
+            z-index: 1;
+        }
+        
+        #inputText::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: 18px;
+            padding: 3px;
+            background: linear-gradient(135deg, #667eea, #764ba2, #667eea);
+            background-size: 200% 200%;
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask-composite: exclude;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            animation: gradientShift 3s ease infinite;
+        }
+        
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
         }
     
         #inputText:focus {
-            border-color: #3498db;
+            border-color: transparent;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15), 0 8px 25px rgba(102, 126, 234, 0.2);
+            transform: translateY(-3px) scale(1.02);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(248, 249, 250, 0.95) 100%);
+        }
+        
+        #inputText:focus::before {
+            opacity: 1;
         }
     
         #inputText::placeholder {
-            color: #aaa;
+            color: #adb5bd;
+            font-style: italic;
+            font-weight: 400;
+            transition: all 0.3s ease;
+        }
+        
+        #inputText:focus::placeholder {
+            color: #667eea;
+            transform: translateY(-2px);
         }
     
-        #switch {
-            background-color: #3498db;
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
-            padding: 8px 16px;
-            border-radius: 20px;
+            padding: 15px 30px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 25px;
             cursor: pointer;
-            font-size: 14px;
-            font-weight: bold;
-            display: block;
-            margin: 0 auto 20px;
-            transition: background-color 0.3s;
+            margin: 8px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            position: relative;
+            overflow: hidden;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .btn:hover::before {
+            left: 100%;
         }
     
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        }
+    
+        .btn:active {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        #switch {
+            display: block;
+            margin: 8px auto 20px;
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 50%, #ff9ff3 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 15px;
+            font-weight: 600;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.3);
+            position: relative;
+            overflow: hidden;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            min-width: 140px;
+            backdrop-filter: blur(10px);
+        }
+        
+        #switch::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.6s ease;
+        }
+        
+        #switch:hover::before {
+            left: 100%;
+        }
+        
         #switch:hover {
-            background-color: #2980b9;
+            transform: translateY(-4px) scale(1.05);
+            box-shadow: 0 12px 30px rgba(255, 107, 107, 0.4);
+            background: linear-gradient(135deg, #ee5a24 0%, #ff6b6b 50%, #ff9ff3 100%);
+        }
+        
+        #switch:active {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 8px 20px rgba(255, 107, 107, 0.35);
+        }
+        
+        #switch:focus {
+            outline: none;
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.3), 0 0 0 3px rgba(255, 107, 107, 0.2);
+        }
+        
+        /* 悬浮按钮样式 */
+        .float-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s ease;
+            z-index: 1000;
+            user-select: none;
+        }
+        
+        .float-btn:hover {
+            transform: translateY(-5px) scale(1.1);
+            box-shadow: 0 12px 35px rgba(102, 126, 234, 0.6);
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        }
+        
+        .float-btn i {
+            font-size: 24px;
+            margin-bottom: 2px;
+        }
+        
+        .float-btn .btn-text {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .float-btn:active {
+            transform: translateY(-2px) scale(1.05);
+        }
+        
+        /* 弹出层样式 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            z-index: 1998;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.8);
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            z-index: 1999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow: hidden;
+        }
+        
+        .modal.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translate(-50%, -50%) scale(1);
+        }
+        
+        .modal-header {
+            padding: 25px 30px 20px;
+            border-bottom: 1px solid rgba(102, 126, 234, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+        }
+        
+        .modal-header h2 {
+            margin: 0;
+            font-size: 24px;
+            color: #667eea;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .modal-header h2 i {
+            font-size: 20px;
+        }
+        
+        .close {
+            font-size: 28px;
+            font-weight: bold;
+            color: #adb5bd;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 35px;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: rgba(173, 181, 189, 0.1);
+        }
+        
+        .close:hover {
+            color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+            transform: rotate(90deg);
+        }
+        
+        .modal-body {
+            padding: 25px 30px 30px;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+        
+        .history-list {
+            margin-top: 25px;
+        }
+        
+        .history-list h3 {
+            color: #667eea;
+            font-size: 18px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .history-list ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .history-list li {
+            padding: 12px 15px;
+            margin: 8px 0;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            font-weight: 500;
+        }
+        
+        .history-list li:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            border-left-color: #764ba2;
+        }
+        
+        .history-list li.success {
+            border-left-color: #28a745;
+            color: #155724;
+        }
+        
+        .history-list li.failed {
+            border-left-color: #dc3545;
+            color: #721c24;
         }
     
         #bestRecord {
-            font-size: 18px;
-            margin-bottom: 15px;
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 700;
+            margin-top: 15px;
             text-align: center;
-            color: #2c3e50;
+            font-size: 16px;
+            padding: 10px;
+            border-radius: 10px;
+            background-color: rgba(255, 107, 107, 0.1);
+            border: 1px solid rgba(255, 107, 107, 0.2);
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+        
+        @keyframes glow {
+            from { box-shadow: 0 0 5px rgba(255, 107, 107, 0.2); }
+            to { box-shadow: 0 0 20px rgba(255, 107, 107, 0.4); }
         }
     
         #bestRecordTime {
@@ -135,49 +589,381 @@
             font-weight: bold;
         }
     
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin: 25px 0;
+            padding: 20px;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+            border-radius: 15px;
+            border: 1px solid rgba(102, 126, 234, 0.1);
+        }
+    
+        .stat-item {
+            text-align: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+        
+        .stat-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+        }
+    
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 5px;
+        }
+    
+        .stat-label {
+            font-size: 12px;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 500;
+        }
+    
+        .history-item {
+            padding: 15px 20px;
+            margin: 10px 0;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 12px;
+            border-left: 4px solid #667eea;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .history-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            border-left-color: #764ba2;
+        }
+    
+        .history-time {
+            font-size: 11px;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+        }
+    
+        .history-stats {
+            font-weight: 600;
+            color: #495057;
+            font-size: 14px;
+        }
+
         @media (max-width: 768px) {
             body {
+                padding: 15px;
                 flex-direction: column;
                 align-items: center;
+                gap: 25px;
             }
-            
+    
             .main, .history {
                 width: 100%;
+                min-width: auto;
+                max-width: none;
+            }
+    
+            .box {
+                padding: 25px;
+                border-radius: 15px;
+            }
+    
+            h1 {
+                font-size: 24px;
+                margin-bottom: 20px;
+            }
+    
+            h2 {
+                font-size: 28px;
+                margin: 15px 0;
+            }
+    
+            #fixedText {
+                font-size: 20px;
+                padding: 20px 25px;
+                margin: 20px 0;
+                min-height: 120px;
+                border-radius: 18px;
+            }
+            
+            #showText {
+                font-size: 22px;
+                padding: 15px 20px;
+                min-height: 45px;
+                border-radius: 12px;
+            }
+    
+            #inputText {
+                 font-size: 20px;
+                 padding: 18px 20px;
+                 border-radius: 15px;
+             }
+             
+             #inputText:focus {
+                 transform: translateY(-2px) scale(1.01);
+             }
+             
+             .btn {
+                 padding: 12px 25px;
+                 font-size: 14px;
+                 margin: 6px;
+             }
+    
+             #switch {
+                 padding: 14px 30px;
+                 font-size: 15px;
+                 min-width: 160px;
+                 margin: 12px auto 25px;
+                 border-radius: 25px;
+                 letter-spacing: 1px;
+             }
+             
+             #switch:hover {
+                 transform: translateY(-2px) scale(1.02);
+                 box-shadow: 0 8px 20px rgba(255, 107, 107, 0.35);
+             }
+             
+            .float-btn {
+                width: 60px;
+                height: 60px;
+                bottom: 20px;
+                right: 20px;
+            }
+            
+            .float-btn i {
+                font-size: 20px;
+            }
+            
+            .float-btn .btn-text {
+                font-size: 9px;
+            }
+            
+            .modal {
+                width: 95%;
+                max-height: 85vh;
+            }
+            
+            .modal-header {
+                padding: 20px 20px 15px;
+            }
+            
+            .modal-header h2 {
+                font-size: 20px;
+            }
+            
+            .modal-body {
+                padding: 20px;
+            }
+    
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+                padding: 15px;
+                margin: 20px 0;
+            }
+            
+            .stat-item {
+                padding: 12px;
+            }
+            
+            .stat-value {
+                font-size: 24px;
+            }
+            
+            .history-item {
+                padding: 12px 15px;
+                margin: 8px 0;
             }
         }
+        
+        @media (max-width: 480px) {
+             .box {
+                 padding: 20px;
+             }
+             
+             h1 {
+                 font-size: 22px;
+             }
+             
+             h2 {
+                 font-size: 24px;
+             }
+             
+             .float-btn {
+                 width: 55px;
+                 height: 55px;
+                 bottom: 15px;
+                 right: 15px;
+             }
+             
+             .float-btn i {
+                 font-size: 18px;
+             }
+             
+             .float-btn .btn-text {
+                 font-size: 8px;
+             }
+             
+             .modal {
+                 width: 98%;
+                 max-height: 90vh;
+             }
+             
+             .modal-header {
+                 padding: 15px 15px 10px;
+             }
+             
+             .modal-header h2 {
+                 font-size: 18px;
+             }
+             
+             .modal-body {
+                 padding: 15px;
+             }
+             
+             .stats {
+                 grid-template-columns: 1fr;
+                 gap: 10px;
+             }
+              
+             .btn {
+                 width: 100%;
+                 margin: 5px 0;
+             }
+              
+             #switch {
+                 width: 85%;
+                 margin: 15px auto 20px;
+                 padding: 16px 20px;
+                 font-size: 14px;
+                 min-width: auto;
+                 border-radius: 20px;
+                 letter-spacing: 0.8px;
+             }
+             
+             #switch:hover {
+                 transform: translateY(-1px) scale(1.01);
+                 box-shadow: 0 6px 15px rgba(255, 107, 107, 0.3);
+             }
+             
+             #fixedText {
+                 font-size: 18px;
+                 padding: 18px 20px;
+                 margin: 15px 0;
+                 min-height: 100px;
+                 border-radius: 15px;
+             }
+             
+             #showText {
+                 font-size: 20px;
+                 padding: 12px 18px;
+                 min-height: 40px;
+                 border-radius: 10px;
+                 margin-bottom: 20px;
+             }
+             
+             #inputText {
+                 font-size: 18px;
+                 padding: 16px 18px;
+                 border-radius: 12px;
+             }
+             
+             #inputText:focus {
+                 transform: translateY(-1px) scale(1.005);
+                 box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.12), 0 6px 20px rgba(102, 126, 234, 0.15);
+             }
+         }
     </style>
 </head>
 
 <body>
     <div class="main">
         <div class="box">
-            <h1>打字练习</h1>
+            <h1>高级打字练习</h1>
             <h2 id="timer">0.000s</h2>
             <button id="switch"></button>
             <div id="fixedText"></div>
             <div id="showText"></div>
             <input type="text" id="inputText" placeholder="开始输入..." autocomplete="off" />
+            <div id="bestRecord">最高纪录: <span id="bestRecordTime">--</span></div>
         </div>
     </div>
-    <div class="history">
-        <div class="box">
-            <h1>历史记录</h1>
-            <div id="bestRecord">最高纪录: <span id="bestRecordTime">--</span></div>
-            <div id="history">
-                <ul id="historyList"></ul>
+    
+    <!-- 悬浮历史记录按钮 -->
+    <div id="historyFloatBtn" class="float-btn">
+        <i class="fas fa-history"></i>
+        <span class="btn-text">历史</span>
+    </div>
+    
+    <!-- 历史记录弹出层 -->
+    <div id="historyModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-chart-line"></i> 练习历史</h2>
+                <span class="close" id="closeModal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="stats">
+                    <div class="stat-item">
+                        <div class="stat-value" id="totalAttempts">0</div>
+                        <div class="stat-label">总次数</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="successRate">0%</div>
+                        <div class="stat-label">成功率</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="avgTime">--</div>
+                        <div class="stat-label">平均时间</div>
+                    </div>
+                </div>
+                <div class="history-list">
+                    <h3><i class="fas fa-list"></i> 最近记录</h3>
+                    <ul id="historyList"></ul>
+                </div>
             </div>
         </div>
     </div>
+    
+    <!-- 遮罩层 -->
+    <div id="modalOverlay" class="modal-overlay"></div>
 
     <script>
         let timer;
         let totalTime = 0;
+        let historyData = [];
         let list = [
             {id:1, text:"123456789"},
             {id:2, text:"0246813579"},
             {id:3, text:"ABCDEFGHIJKLMNOPQRSTUVWXYZ"},
             {id:4, text:"The quick brown fox jumps over the lazy dog"},
-            {id:4, text:"QQWWEERRTTYYUUIIOOPPAASSDDFFGGHHJJKKLLZZXXCCVVBBNNMM"},
+            {id:5, text:"QQWWEERRTTYYUUIIOOPPAASSDDFFGGHHJJKKLLZZXXCCVVBBNNMM"},
         ];
         // 切换文本
         let typeText = list[0].text;
@@ -252,15 +1038,65 @@
         }
 
         function addHistory(value) {
-            const historyList = document.getElementById("historyList");
-            const li = document.createElement("li");
-            li.textContent = value;
-            historyList.insertBefore(li, historyList.firstChild); // 添加到列表的顶部
-
-            // 限制历史记录数量为 10
-            if (historyList.children.length > 10) {
-                historyList.removeChild(historyList.lastChild);
+            const now = new Date();
+            const timeString = now.toLocaleTimeString();
+            const isSuccess = value !== "失败";
+            
+            // 添加到历史数据数组
+            const historyItem = {
+                time: timeString,
+                result: value,
+                success: isSuccess,
+                textId: list.findIndex(item => item.text === typeText) + 1
+            };
+            
+            historyData.unshift(historyItem);
+            
+            // 限制历史记录数量为 20
+            if (historyData.length > 20) {
+                historyData.pop();
             }
+            
+            // 更新历史记录显示
+            updateHistoryDisplay();
+            updateStatistics();
+        }
+        
+        function updateHistoryDisplay() {
+            const historyList = document.getElementById("historyList");
+            historyList.innerHTML = '';
+            
+            historyData.slice(0, 10).forEach(item => {
+                const li = document.createElement("li");
+                li.className = item.success ? 'success' : 'failed';
+                li.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>${item.time} - 文本${item.textId}</span>
+                        <strong>${item.result}</strong>
+                    </div>
+                `;
+                historyList.appendChild(li);
+            });
+        }
+        
+        function updateStatistics() {
+            const totalAttempts = historyData.length;
+            const successCount = historyData.filter(item => item.success).length;
+            const successRate = totalAttempts > 0 ? Math.round((successCount / totalAttempts) * 100) : 0;
+            
+            // 计算平均时间（只计算成功的记录）
+            const successTimes = historyData.filter(item => item.success).map(item => {
+                const timeStr = item.result.replace('s', '');
+                return parseFloat(timeStr);
+            });
+            
+            const avgTime = successTimes.length > 0 ? 
+                (successTimes.reduce((a, b) => a + b, 0) / successTimes.length).toFixed(3) + 's' : '--';
+            
+            // 更新统计显示
+            document.getElementById('totalAttempts').textContent = totalAttempts;
+            document.getElementById('successRate').textContent = successRate + '%';
+            document.getElementById('avgTime').textContent = avgTime;
         }
 
         function updateBestRecord(currentTime) {
@@ -274,6 +1110,39 @@
         // 页面加载时，显示最高纪录
         window.onload = function() {
             document.getElementById('bestRecordTime').textContent = '--'; // 初始化最高纪录显示
+            initModalEvents();
+        }
+        
+        // 初始化弹出层事件
+        function initModalEvents() {
+            const floatBtn = document.getElementById('historyFloatBtn');
+            const modal = document.getElementById('historyModal');
+            const overlay = document.getElementById('modalOverlay');
+            const closeBtn = document.getElementById('closeModal');
+            
+            // 打开弹出层
+            floatBtn.addEventListener('click', function() {
+                modal.classList.add('active');
+                overlay.classList.add('active');
+                updateHistoryDisplay();
+                updateStatistics();
+            });
+            
+            // 关闭弹出层
+            function closeModal() {
+                modal.classList.remove('active');
+                overlay.classList.remove('active');
+            }
+            
+            closeBtn.addEventListener('click', closeModal);
+            overlay.addEventListener('click', closeModal);
+            
+            // ESC键关闭
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && modal.classList.contains('active')) {
+                    closeModal();
+                }
+            });
         }
         
         // 显示输入的内容

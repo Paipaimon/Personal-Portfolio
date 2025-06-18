@@ -2,136 +2,493 @@
 <html>
 	<head>
 		<meta charset="utf-8">
-		<title>PinkBang</title>
+		<title>🎨 PinkBang - 炫彩变色器</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<style type="text/css">
-			body{
-				background-color: aqua;
-				margin: 0px;
+			* {
+				box-sizing: border-box;
+			}
+			body {
+				margin: 0;
+				padding: 0;
+				font-family: 'Arial', 'Microsoft YaHei', sans-serif;
+				overflow: hidden;
+				cursor: pointer;
 			}
 			
 			#pinkChange {
-				height: 1000px;
+				height: 100vh;
 				width: 100%;
-				background-color: pink;
-				color: black;
+				background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #feca57);
+				background-size: 400% 400%;
+				animation: gradientShift 3s ease infinite;
+				color: white;
 				text-align: center;
+				display: flex;
+				flex-direction: column;
+				justify-content: center;
+				align-items: center;
+				position: relative;
+				transition: all 0.3s ease;
 			}
-			#stop{
-				width: 100px;
-				height: 40px;
-				z-index: 100;
+			
+			@keyframes gradientShift {
+				0% { background-position: 0% 50%; }
+				50% { background-position: 100% 50%; }
+				100% { background-position: 0% 50%; }
+			}
+			
+			.title {
+					font-size: 4rem;
+					font-weight: bold;
+					margin-bottom: 20px;
+					text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+					animation: pulse 2s ease-in-out infinite;
+					transition: all 0.5s ease;
+				}
+			
+			@keyframes pulse {
+				0%, 100% { transform: scale(1); }
+				50% { transform: scale(1.05); }
+			}
+			
+			.subtitle {
+					font-size: 1.5rem;
+					margin-bottom: 30px;
+					opacity: 0.9;
+					text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+					transition: all 0.5s ease;
+				}
+			
+			#rgb-display {
+					background: rgba(255, 255, 255, 0.2);
+					padding: 20px 40px;
+					border-radius: 50px;
+					font-size: 1.8rem;
+					font-weight: bold;
+					margin-bottom: 30px;
+					backdrop-filter: blur(10px);
+					border: 2px solid rgba(255, 255, 255, 0.3);
+					box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+					transition: all 0.5s ease;
+				}
+			
+			#rgb-display:hover {
+				transform: scale(1.05);
+				box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+			}
+			
+			.controls {
+					display: flex;
+					gap: 20px;
+					flex-wrap: wrap;
+					justify-content: center;
+					margin-bottom: 30px;
+					transition: all 0.5s ease;
+				}
+			
+			.btn {
+					padding: 15px 30px;
+					border: none;
+					border-radius: 25px;
+					font-size: 1.1rem;
+					font-weight: bold;
+					cursor: pointer;
+					transition: all 0.5s ease;
+					backdrop-filter: blur(10px);
+					border: 2px solid rgba(255, 255, 255, 0.3);
+					color: white;
+					text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+				}
+			
+			.btn-primary {
+				background: rgba(255, 107, 107, 0.3);
+			}
+			
+			.btn-secondary {
+				background: rgba(78, 205, 196, 0.3);
+			}
+			
+			.btn-tertiary {
+				background: rgba(69, 183, 209, 0.3);
+			}
+			
+			.btn:hover {
+				transform: translateY(-3px);
+				box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+				background: rgba(255, 255, 255, 0.4);
+			}
+			
+			.btn:active {
+				transform: translateY(-1px);
+			}
+			
+			.speed-control {
+					display: flex;
+					align-items: center;
+					gap: 15px;
+					margin-bottom: 20px;
+					transition: all 0.5s ease;
+				}
+			
+			.speed-slider {
+				width: 200px;
+				height: 8px;
+				border-radius: 4px;
+				background: rgba(255, 255, 255, 0.3);
+				outline: none;
+				-webkit-appearance: none;
+			}
+			
+			.speed-slider::-webkit-slider-thumb {
+				-webkit-appearance: none;
+				width: 20px;
+				height: 20px;
+				border-radius: 50%;
+				background: white;
+				cursor: pointer;
+				box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+			}
+			
+			.info-panel {
+					position: absolute;
+					top: 20px;
+					right: 20px;
+					background: rgba(255, 255, 255, 0.2);
+					padding: 15px;
+					border-radius: 15px;
+					backdrop-filter: blur(10px);
+					border: 1px solid rgba(255, 255, 255, 0.3);
+					font-size: 0.9rem;
+					max-width: 250px;
+					transition: all 0.5s ease;
+				}
+			
+			.hint-title {
+				font-weight: bold;
+				margin-bottom: 10px;
+				text-align: center;
+				font-size: 1rem;
+			}
+			
+			.hint-item {
+				margin: 5px 0;
+				display: flex;
+				align-items: center;
+				gap: 8px;
+			}
+			
+			kbd {
+				background: rgba(255, 255, 255, 0.3);
+				padding: 2px 6px;
+				border-radius: 4px;
+				font-size: 0.8rem;
+				font-weight: bold;
+				min-width: 20px;
+				text-align: center;
+				border: 1px solid rgba(255, 255, 255, 0.4);
+			}
+			
+			.click-hint {
+				position: absolute;
+				bottom: 30px;
+				left: 50%;
+				transform: translateX(-50%);
+				font-size: 1.2rem;
+				opacity: 0.8;
+				animation: bounce 2s ease-in-out infinite;
+			}
+			
+			@keyframes bounce {
+				0%, 20%, 50%, 80%, 100% { transform: translateX(-50%) translateY(0); }
+				40% { transform: translateX(-50%) translateY(-10px); }
+				60% { transform: translateX(-50%) translateY(-5px); }
+			}
+			
+			@media (max-width: 768px) {
+				.title {
+					font-size: 2.5rem;
+				}
+				.subtitle {
+					font-size: 1.2rem;
+				}
+				#rgb-display {
+					font-size: 1.4rem;
+					padding: 15px 25px;
+				}
+				.controls {
+					flex-direction: column;
+					align-items: center;
+				}
+				.info-panel {
+					position: static;
+					margin-top: 20px;
+					max-width: 90%;
+				}
 			}
 		</style>
 		<script type="text/javascript">
-			var r = 0; //241-255
-			var g = 0; //156-212
-			var b = 0; //177-226
-			var startRed = 1;
-			var endRed = 255;
-			var startGreen = 1;
-			var endGreen = 255;
-			var startBlue = 1;
-			var endBlue = 255;
-			var time = 0;
-			var index = 0;
-			function start() {
-				clearInterval(time);
-				if(index%2 == 0){
-					time = setInterval(change , 10);
-				}else
-					clearInterval(time);
-				index++;
-				console.log(time);
-			}
-
-			function change() {
-				//三个数同时加
-				// if (r == endRed) {
-				// 	r = startRed;
-				// } else {
-				// 	r++;
-				// }
-				// if (g == endGreen) {
-				// 	g = startGreen;
-				// } else {
-				// 	g++;
-				// }
-				// if (b == endBlue) {
-				// 	b = startBlue;
-				// }else {
-				// 	b++;
-				// }
-				/*
-				// 一个数加完再加下一个
-				r++;
-				if(r == endRed){
-					r = startRed;
-					g++;
-					if(g == endGreen){
-						g = startGreen;
-						b++;
-						if(b == endBlue){
-							b = startBlue;
-						}
-					}
+			// 颜色变量
+			let r = 255, g = 192, b = 203; // 初始粉色
+			let animationId = null;
+			let isRunning = false;
+			let speed = 50; // 变化速度 (ms)
+			let mode = 'random'; // 变化模式: random, gradient, rainbow
+			let clickCount = 0;
+			let startTime = Date.now();
+			
+			// 颜色变化模式
+			const colorModes = {
+				random: () => {
+					r = Math.floor(Math.random() * 256);
+					g = Math.floor(Math.random() * 256);
+					b = Math.floor(Math.random() * 256);
+				},
+				gradient: () => {
+					const time = Date.now() * 0.001;
+					r = Math.floor(128 + 127 * Math.sin(time));
+					g = Math.floor(128 + 127 * Math.sin(time + 2));
+					b = Math.floor(128 + 127 * Math.sin(time + 4));
+				},
+				rainbow: () => {
+					const hue = (Date.now() * 0.1) % 360;
+					const rgb = hslToRgb(hue / 360, 1, 0.5);
+					r = rgb[0];
+					g = rgb[1];
+					b = rgb[2];
 				}
-				*/
-				//随机变化
-				r = Math.floor(Math.random() * 255);
-				g = Math.floor(Math.random() * 255);
-				b = Math.floor(Math.random() * 255);
-				
-				var sRgb = "RGB(" + r + ", " + g + ", " + b + ")";//获取RGB值
-				var sHexColor = sRgb.colorHex(); //转换为十六进制方法
-				//console.log(sHexColor);
-				//console.log(r, g, b);
-				document.getElementById("pinkChange").style.backgroundColor = sHexColor;
-				//document.getElementsByTagName("body").style.backgroundColor = sHexColor;
-				document.getElementById("rgb-number").innerHTML = sRgb;
-			}
-			var reg = /^#([0-9a-fA-f]{3}|[0-9a-fA-f]{6})$/; //十六进制颜色值的正则表达式
-			/*RGB颜色转换为16进制*/
-			String.prototype.colorHex = function() {
-				var that = this;
-				if (/^(rgb|RGB)/.test(that)) {
-					var aColor = that.replace(/(?:\(|\)|rgb|RGB)*/g, "").split(",");
-					var strHex = "#";
-					for (var i = 0; i < aColor.length; i++) {
-						var hex = Number(aColor[i]).toString(16);
-						if (hex === "0") {
-							hex += hex;
-						}
-						strHex += hex;
-					}
-					if (strHex.length !== 7) {
-						strHex = that;
-					}
-					return strHex;
-				} else if (reg.test(that)) {
-					var aNum = that.replace(/#/, "").split("");
-					if (aNum.length === 6) {
-						return that;
-					} else if (aNum.length === 3) {
-						var numHex = "#";
-						for (var i = 0; i < aNum.length; i += 1) {
-							numHex += (aNum[i] + aNum[i]);
-						}
-						return numHex;
-					}
+			};
+			
+			// HSL转RGB
+			function hslToRgb(h, s, l) {
+				let r, g, b;
+				if (s === 0) {
+					r = g = b = l;
 				} else {
-					return that;
+					const hue2rgb = (p, q, t) => {
+						if (t < 0) t += 1;
+						if (t > 1) t -= 1;
+						if (t < 1/6) return p + (q - p) * 6 * t;
+						if (t < 1/2) return q;
+						if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+						return p;
+					};
+					const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+					const p = 2 * l - q;
+					r = hue2rgb(p, q, h + 1/3);
+					g = hue2rgb(p, q, h);
+					b = hue2rgb(p, q, h - 1/3);
+				}
+				return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+			}
+			
+			// 开始/停止动画
+			function toggleAnimation() {
+				if (isRunning) {
+					stopAnimation();
+				} else {
+					startAnimation();
 				}
 			}
 			
-			// document.getElementsByClassName()
+			function startAnimation() {
+				if (isRunning) return;
+				isRunning = true;
+				document.querySelector('.click-hint').textContent = '🛑 点击停止变色';
+				animateColors();
+			}
+			
+			function stopAnimation() {
+				isRunning = false;
+				if (animationId) {
+					clearTimeout(animationId);
+					animationId = null;
+				}
+				document.querySelector('.click-hint').textContent = '🎨 点击开始变色';
+			}
+			
+			function animateColors() {
+				if (!isRunning) return;
+				
+				// 根据当前模式生成颜色
+				colorModes[mode]();
+				
+				// 应用颜色
+				const rgb = `rgb(${r}, ${g}, ${b})`;
+				const hex = rgbToHex(r, g, b);
+				
+				document.getElementById('pinkChange').style.background = rgb;
+				document.getElementById('rgb-display').innerHTML = `
+					<div>RGB: ${rgb}</div>
+					<div style="font-size: 0.8em; margin-top: 5px;">HEX: ${hex}</div>
+				`;
+				
+				// 继续动画
+				animationId = setTimeout(animateColors, speed);
+			}
+			
+			// RGB转HEX
+			function rgbToHex(r, g, b) {
+				return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+			}
+			
+			// 改变模式
+			function changeMode(newMode) {
+				mode = newMode;
+				// 更新按钮状态
+				document.querySelectorAll('.mode-btn').forEach(btn => {
+					btn.classList.remove('active');
+				});
+				document.querySelector(`[data-mode="${newMode}"]`).classList.add('active');
+			}
+			
+			// 改变速度
+			function changeSpeed(value) {
+				speed = 101 - value; // 反转，让滑块右边表示更快
+				document.getElementById('speed-value').textContent = value;
+			}
+			
+			// 复制颜色值
+			function copyColor() {
+				const rgb = `rgb(${r}, ${g}, ${b})`;
+				navigator.clipboard.writeText(rgb).then(() => {
+					const btn = document.getElementById('copy-btn');
+					const originalText = btn.textContent;
+					btn.textContent = '✅ 已复制!';
+					setTimeout(() => {
+						btn.textContent = originalText;
+					}, 2000);
+				}).catch(() => {
+					alert('复制失败，请手动复制: ' + rgb);
+				});
+			}
+			
+
+			
+			// 页面加载完成后初始化
+			window.addEventListener('load', function() {
+				// 初始显示颜色
+				const rgb = `rgb(${r}, ${g}, ${b})`;
+				const hex = rgbToHex(r, g, b);
+				document.getElementById('rgb-display').innerHTML = `
+					<div>RGB: ${rgb}</div>
+					<div style="font-size: 0.8em; margin-top: 5px;">HEX: ${hex}</div>
+				`;
+			});
+			
+			// UI显示状态
+			let uiVisible = true;
+			
+			// 切换UI显示/隐藏
+			function toggleUI() {
+				uiVisible = !uiVisible;
+				const uiElements = document.querySelectorAll('.title, .subtitle, #rgb-display, .controls, .speed-control, #copy-btn, .info-panel');
+				
+				uiElements.forEach(element => {
+					if (uiVisible) {
+						element.style.opacity = '1';
+						element.style.pointerEvents = 'auto';
+						element.style.transform = 'scale(1)';
+					} else {
+						element.style.opacity = '0';
+						element.style.pointerEvents = 'none';
+						element.style.transform = 'scale(0.8)';
+					}
+				});
+				
+				// 更新提示文字
+				const clickHint = document.querySelector('.click-hint');
+				if (uiVisible) {
+					clickHint.textContent = isRunning ? '🛑 点击停止变色' : '🎨 点击开始变色';
+					clickHint.style.opacity = '0.8';
+				} else {
+					clickHint.textContent = '👁️ 右键显示UI';
+					clickHint.style.opacity = '0.6';
+				}
+			}
+			
+			// 右键菜单事件
+			document.addEventListener('contextmenu', function(e) {
+				e.preventDefault();
+				toggleUI();
+			});
+			
+			// 键盘快捷键
+			document.addEventListener('keydown', function(e) {
+				switch(e.key) {
+					case ' ': // 空格键切换
+						e.preventDefault();
+						toggleAnimation();
+						break;
+					case '1':
+						changeMode('random');
+						break;
+					case '2':
+						changeMode('gradient');
+						break;
+					case '3':
+						changeMode('rainbow');
+						break;
+					case 'c':
+					case 'C':
+						copyColor();
+						break;
+					case 'h':
+					case 'H':
+						toggleUI();
+						break;
+				}
+			});
 		</script>
 	</head>
 	<body>
-		
-		<div id="pinkChange" onclick="start();"> 
-			<div id="rgb-number">
-				RGB(000,000,000)
+		<div id="pinkChange" onclick="toggleAnimation();">
+			<div class="title">🎨 PinkBang</div>
+			<div class="subtitle">炫彩变色器</div>
+			
+			<div id="rgb-display">
+				RGB(255, 192, 203)
+			</div>
+			
+			<div class="controls">
+				<button class="btn btn-primary mode-btn active" data-mode="random" onclick="event.stopPropagation(); changeMode('random');">🎲 随机模式</button>
+				<button class="btn btn-secondary mode-btn" data-mode="gradient" onclick="event.stopPropagation(); changeMode('gradient');">🌊 渐变模式</button>
+				<button class="btn btn-tertiary mode-btn" data-mode="rainbow" onclick="event.stopPropagation(); changeMode('rainbow');">🌈 彩虹模式</button>
+			</div>
+			
+			<div class="speed-control">
+				<span>🐌 慢</span>
+				<input type="range" class="speed-slider" min="1" max="50" value="50" 
+					   oninput="changeSpeed(this.value)" onclick="event.stopPropagation();">
+				<span>🚀 快</span>
+				<span style="margin-left: 10px;">速度: <span id="speed-value">50</span></span>
+			</div>
+			
+			<button class="btn btn-primary" id="copy-btn" onclick="event.stopPropagation(); copyColor();">📋 复制颜色</button>
+			
+			<div class="click-hint">🎨 点击开始变色</div>
+			
+			<div class="info-panel">
+				<div class="keyboard-hints">
+					<div class="hint-title">⌨️ 快捷键</div>
+					<div class="hint-item"><kbd>空格</kbd> 开始/停止</div>
+					<div class="hint-item"><kbd>1</kbd> 随机模式</div>
+					<div class="hint-item"><kbd>2</kbd> 渐变模式</div>
+					<div class="hint-item"><kbd>3</kbd> 彩虹模式</div>
+					<div class="hint-item"><kbd>C</kbd> 复制颜色</div>
+					<div class="hint-item"><kbd>H</kbd> 隐藏界面</div>
+					<div class="hint-item"><kbd>F11</kbd> 全屏</div>
+					<div class="hint-item">🖱️ <strong>右键</strong> 隐藏界面</div>
+				</div>
 			</div>
 		</div>
+		
+		<style>
+			.mode-btn.active {
+				background: rgba(255, 255, 255, 0.5) !important;
+				transform: scale(1.05);
+				box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+			}
+		</style>
 	</body>
 </html>
