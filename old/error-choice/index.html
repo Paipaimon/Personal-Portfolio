@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>错误选择</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .shape {
+            transition: all 0.3s ease;
+        }
+        .shape:hover {
+            transform: scale(1.05);
+        }
+        .triangle {
+            width: 0;
+            height: 0;
+            border-left: 86.6px solid transparent;
+            border-right: 86.6px solid transparent;
+            border-bottom: 150px solid;
+        }
+        .circle {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+        }
+        .square {
+            width: 150px;
+            height: 150px;
+        }
+        .option-btn {
+            transition: all 0.2s ease;
+        }
+        .option-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        .option-btn:active {
+            transform: translateY(0);
+        }
+        .progress-bar {
+            height: 6px;
+            transition: width 0.3s ease;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        .pulse {
+            animation: pulse 1.5s infinite;
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
+    <!-- 开始界面 -->
+    <div id="start-screen" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+        <div class="bg-white rounded-xl p-8 max-w-md w-full mx-4 text-center fade-in">
+            <h2 class="text-3xl font-bold mb-6 text-blue-600">形状与颜色挑战</h2>
+            <p class="text-gray-700 mb-8">从形状和颜色中找出不匹配的选项。您将有10轮机会来获得最高分数！</p>
+            <button id="start-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full text-lg transition-all transform hover:scale-105">
+                开始游戏
+            </button>
+        </div>
+    </div>
+
+    <!-- 游戏界面 (初始隐藏) -->
+    <div id="game-screen" class="w-full max-w-2xl bg-white rounded-xl shadow-xl overflow-hidden hidden">
+        <!-- 顶部信息栏 -->
+        <div class="bg-gradient-to-r from-blue-500 to-purple-600 p-6 text-white">
+            <h1 class="text-3xl font-bold text-center">形状与颜色挑战</h1>
+            <div class="flex justify-between items-center mt-4">
+                <div class="text-lg">
+                    <span class="font-semibold">得分:</span> 
+                    <span id="score">0</span>/10
+                </div>
+                <div class="text-lg">
+                    <span class="font-semibold">时间:</span> 
+                    <span id="timer">00:00</span>
+                </div>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2.5 mt-3">
+                <div id="progress-bar" class="progress-bar bg-yellow-300 rounded-full" style="width: 0%"></div>
+            </div>
+        </div>
+
+        <!-- 游戏区域 -->
+        <div class="p-8 flex flex-col items-center">
+            <div id="shape-container" class="mb-12 flex items-center justify-center h-64">
+                <div id="target-shape" class="shape pulse"></div>
+            </div>
+
+            <div class="w-full">
+                <h2 class="text-xl font-semibold text-center mb-6 text-gray-700">哪个选项与形状不匹配？</h2>
+                <div id="options" class="grid grid-cols-3 gap-4">
+                    <!-- 选项将在这里生成 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 结果弹窗 (初始隐藏) -->
+        <div id="results-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+            <div class="bg-white rounded-xl p-8 max-w-md w-full mx-4">
+                <h2 class="text-2xl font-bold text-center mb-6 text-blue-600">游戏完成！</h2>
+                <div class="space-y-4">
+                    <div class="flex justify-between">
+                        <span class="font-semibold">最终得分:</span>
+                        <span id="final-score" class="font-bold">0/10</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-semibold">用时:</span>
+                        <span id="final-time" class="font-bold">00:00</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-semibold">准确率:</span>
+                        <span id="accuracy" class="font-bold">0%</span>
+                    </div>
+                </div>
+                <div class="mt-8 flex justify-center">
+                    <button id="play-again" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-full transition-all">
+                        再玩一次
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 游戏变量
+        let score = 0;
+        let currentRound = 0;
+        const totalRounds = 10;
+        let startTime;
+        let timerInterval;
+        let correctAnswers = 0;
+        
+        // 形状和颜色选项 (中文)
+        const shapes = ['三角形', '圆形', '正方形'];
+        const colors = ['红色', '黄色', '蓝色'];
+        
+        // 当前目标形状和颜色
+        let currentShape;
+        let currentColor;
+        
+        // 初始化游戏
+        function initGame() {
+            // 隐藏开始界面，显示游戏界面
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('game-screen').classList.remove('hidden');
+            
+            // 重置游戏变量
+            score = 0;
+            currentRound = 0;
+            correctAnswers = 0;
+            document.getElementById('score').textContent = score;
+            document.getElementById('progress-bar').style.width = '0%';
+            
+            // 开始计时
+            startTime = new Date();
+            updateTimer();
+            timerInterval = setInterval(updateTimer, 1000);
+            
+            // 生成第一轮
+            generateRound();
+        }
+        
+        // 更新计时器显示
+        function updateTimer() {
+            const now = new Date();
+            const elapsed = Math.floor((now - startTime) / 1000);
+            const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');
+            const seconds = (elapsed % 60).toString().padStart(2, '0');
+            document.getElementById('timer').textContent = `${minutes}:${seconds}`;
+        }
+        
+        // 生成新的一轮
+        function generateRound() {
+            if (currentRound >= totalRounds) {
+                endGame();
+                return;
+            }
+            
+            currentRound++;
+            document.getElementById('progress-bar').style.width = `${(currentRound / totalRounds) * 100}%`;
+            
+            // 随机选择形状和颜色
+            currentShape = shapes[Math.floor(Math.random() * shapes.length)];
+            currentColor = colors[Math.floor(Math.random() * colors.length)];
+            
+            // 显示目标形状
+            const targetShape = document.getElementById('target-shape');
+            targetShape.className = `shape ${getShapeClass(currentShape)}`;
+            
+            // 根据形状类型设置颜色
+            if (currentShape === '三角形') {
+                targetShape.style.borderBottomColor = getColorCode(currentColor);
+                targetShape.style.backgroundColor = 'transparent'; // 三角形不需要背景色
+            } else {
+                targetShape.style.backgroundColor = getColorCode(currentColor);
+            }
+            
+            // 生成选项 (2个匹配，1个不匹配)
+            const options = [];
+            
+            // 修复：明确区分形状和颜色选项
+            // 匹配选项 (与当前形状和颜色相同)
+            options.push(currentShape); // 形状匹配
+            options.push(currentColor); // 颜色匹配
+            
+            // 不匹配选项 (必须与当前形状和颜色都不同)
+            let mismatchingOption;
+            const isShapeMismatch = Math.random() < 0.5; // 随机决定是形状不匹配还是颜色不匹配
+            
+            if (isShapeMismatch) {
+                // 选择一个不同的形状
+                do {
+                    mismatchingOption = shapes[Math.floor(Math.random() * shapes.length)];
+                } while (mismatchingOption === currentShape);
+            } else {
+                // 选择一个不同的颜色
+                do {
+                    mismatchingOption = colors[Math.floor(Math.random() * colors.length)];
+                } while (mismatchingOption === currentColor);
+            }
+            
+            options.push(mismatchingOption);
+            
+            // 随机排列选项
+            shuffleArray(options);
+            
+            // 创建选项按钮
+            const optionsContainer = document.getElementById('options');
+            optionsContainer.innerHTML = '';
+            
+            options.forEach(option => {
+                const isMismatch = option !== currentShape && option !== currentColor;
+                const button = document.createElement('button');
+                button.className = 'option-btn bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-4 px-2 rounded-lg border border-gray-300';
+                button.textContent = option;
+                
+                button.addEventListener('click', () => {
+                    if (isMismatch) {
+                        // 正确选择不匹配项
+                        score++;
+                        correctAnswers++;
+                        document.getElementById('score').textContent = score;
+                        button.classList.add('bg-green-100', 'border-green-500');
+                    } else {
+                        // 错误选择匹配项
+                        button.classList.add('bg-red-100', 'border-red-500');
+                    }
+                    
+                    // 选择后禁用所有按钮
+                    document.querySelectorAll('#options button').forEach(btn => {
+                        btn.disabled = true;
+                        if (btn.textContent !== currentShape && btn.textContent !== currentColor) {
+                            btn.classList.add('bg-green-100', 'border-green-500');
+                        }
+                    });
+                    
+                    generateRound();
+                });
+                
+                optionsContainer.appendChild(button);
+            });
+        }
+        
+        // 根据中文形状名称获取对应的CSS类
+        function getShapeClass(shapeName) {
+            switch(shapeName) {
+                case '三角形': return 'triangle';
+                case '圆形': return 'circle';
+                case '正方形': return 'square';
+                default: return 'circle';
+            }
+        }
+        
+        // 根据中文颜色名称获取对应的颜色代码
+        function getColorCode(colorName) {
+            switch(colorName) {
+                case '红色': return '#ef4444';
+                case '黄色': return '#facc15';
+                case '蓝色': return '#3b82f6';
+                default: return '#3b82f6';
+            }
+        }
+        
+        // 结束游戏
+        function endGame() {
+            clearInterval(timerInterval);
+            
+            // 计算最终统计数据
+            const endTime = new Date();
+            const timeSpent = (endTime - startTime) / 1000; // 秒
+            const minutes = Math.floor(timeSpent / 60).toString().padStart(2, '0');
+            const seconds = (timeSpent % 60).toFixed(0).padStart(2, '0');
+            
+            // 计算得分 (正确率 * 时间系数)
+            const accuracy = correctAnswers / totalRounds;
+            // 时间系数 - 基准是30秒 (30秒得1分，每少0.1秒加0.02，每多0.1秒减0.02)
+            const timeDifference = (30 - timeSpent) * 10; // 转换为0.1秒单位
+            const timeFactor = 1 + (timeDifference * 0.02);
+            // 确保时间系数不小于0.5
+            const adjustedTimeFactor = Math.max(0.5, timeFactor);
+            
+            // 最终得分计算
+            const finalScore = Math.round(accuracy * 100 * adjustedTimeFactor);
+            
+            // 显示结果
+            document.getElementById('final-score').textContent = `${finalScore}分`;
+            document.getElementById('final-time').textContent = `${minutes}:${seconds}`;
+            document.getElementById('accuracy').textContent = `${Math.round(accuracy * 100)}%`;
+            
+            // 显示弹窗
+            document.getElementById('results-modal').classList.remove('hidden');
+        }
+        
+        // 辅助函数：随机打乱数组
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+        
+        // 开始按钮事件监听
+        document.getElementById('start-btn').addEventListener('click', initGame);
+        
+        // 再玩一次按钮
+        document.getElementById('play-again').addEventListener('click', () => {
+            document.getElementById('results-modal').classList.add('hidden');
+            initGame();
+        });
+    </script>
+</body>
+</html>

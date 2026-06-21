@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>圆周率记忆</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Courier New', monospace;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: #fff;
+    }
+    h1 { font-size: 3rem; margin-bottom: 1rem; color: #00d9ff; }
+    #pi-display {
+      font-size: 2rem;
+      padding: 1.5rem 2rem;
+      background: rgba(255,255,255,0.1);
+      border-radius: 12px;
+      margin-bottom: 1.5rem;
+      min-height: 4rem;
+      max-width: 80vw;
+      word-break: break-all;
+      text-align: center;
+    }
+    #input {
+      font-size: 2rem;
+      padding: 1rem 2rem;
+      border: none;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.15);
+      color: #fff;
+      text-align: center;
+      outline: none;
+      width: 300px;
+    }
+    #input:focus { box-shadow: 0 0 20px rgba(0,217,255,0.5); }
+    #stats {
+      margin-top: 1.5rem;
+      font-size: 1.1rem;
+      color: #aaa;
+      text-align: center;
+    }
+    .hint { color: #666; }
+    .memorized { color: #00ff88; }
+    .fade { color: #00ff8866; }
+    .wrong { animation: shake 0.3s; background: rgba(255,0,0,0.2) !important; }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-10px); }
+      75% { transform: translateX(10px); }
+    }
+  </style>
+</head>
+<body>
+  <h1>π</h1>
+  <div id="pi-display">3.</div>
+  <input type="text" id="input" inputmode="numeric" placeholder="输入数字" autofocus autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+  <div id="stats">
+    已记忆: <span id="count">0</span> 位 | 最高: <span id="best">0</span> 位 | 连对: <span id="streak">0</span>
+  </div>
+
+  <script>
+    const PI = '14159265358979323846264338327950288419716939937510582097494459230781640628620899862803482534211706798214808651328230664709384460955058223172535940812848111745028410270193852110555964462294895493038196';
+    
+    let memorized = localStorage.getItem('pi_mem') || '';
+    let best = parseInt(localStorage.getItem('pi_best')) || 0;
+    let streak = 0;
+    let typing = false;
+    let timer;
+
+    const display = document.getElementById('pi-display');
+    const input = document.getElementById('input');
+    const countEl = document.getElementById('count');
+    const bestEl = document.getElementById('best');
+    const streakEl = document.getElementById('streak');
+
+    // 根据熟练度决定提示数量：连对越多提示越少，最高时提示10
+    function getHintCount() {
+      if (streak >= 10) return 0;
+      if (streak >= 5) return 3;
+      if (best == memorized.length) {
+        return 10;
+      } else {
+        return 3;
+      }
+      return 5;
+    }
+
+    function updateDisplay() {
+      const hintCount = getHintCount();
+      const hint = typing ? '<span class="hint">_</span>' : 
+        `<span class="hint">${PI.slice(memorized.length, memorized.length + hintCount)}</span>`;
+      
+      // 显示最后10位已记忆 + 提示
+      const showMem = memorized.length > 10 ? 
+        `<span class="fade">${memorized.slice(-10, -5)}</span><span class="memorized">${memorized.slice(-5)}</span>` :
+        `<span class="memorized">${memorized}</span>`;
+      
+      display.innerHTML = '3.' + (memorized.length > 10 ? '...' : '') + showMem + hint;
+      
+      countEl.textContent = memorized.length;
+      bestEl.textContent = best;
+      streakEl.textContent = streak;
+    }
+
+    function save() {
+      localStorage.setItem('pi_mem', memorized);
+      if (memorized.length > best) {
+        best = memorized.length;
+        localStorage.setItem('pi_best', best);
+      }
+    }
+
+    input.addEventListener('input', (e) => {
+      const val = e.target.value;
+      if (!val) return;
+      
+      const lastChar = val.slice(-1);
+      if (!/\d/.test(lastChar)) { input.value = ''; return; }
+      
+      const expected = PI[memorized.length];
+      
+      typing = true;
+      clearTimeout(timer);
+      
+      if (lastChar === expected) {
+        memorized += lastChar;
+        streak++;
+        input.classList.remove('wrong');
+      } else {
+        // 错误惩罚：根据已记忆长度动态调整
+        const penalty = Math.min(Math.ceil(memorized.length * 0.1), 5);
+        memorized = memorized.slice(0, -penalty);
+        streak = 0;
+        input.classList.add('wrong');
+        setTimeout(() => input.classList.remove('wrong'), 300);
+      }
+      
+      input.value = '';
+      save();
+      updateDisplay();
+      
+      // 熟练后提示延迟更长
+      const delay = streak >= 10 ? 2500 : 1500;
+      timer = setTimeout(() => {
+        typing = false;
+        updateDisplay();
+      }, delay);
+    });
+
+    bestEl.textContent = best;
+    updateDisplay();
+  </script>
+</body>
+</html>

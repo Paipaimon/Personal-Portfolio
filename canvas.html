@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>无限网格交互 (多主题切换与动效)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            /* 增加主题切换时的过渡效果 */
+            transition: background-color 0.5s ease, color 0.5s ease, border-color 0.5s ease;
+        }
+
+        body {
+            overflow: hidden;
+            background-color: #f7f7f7; 
+            color: #000000;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+        }
+
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            cursor: grab;
+        }
+
+        #canvas-container:active {
+            cursor: grabbing;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        .ui-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            pointer-events: none;
+            background: rgba(255, 255, 255, 0.85);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #cccccc;
+            backdrop-filter: blur(5px);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: all 0.5s ease;
+        }
+
+        h1 {
+            font-size: 18px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        p {
+            font-size: 14px;
+            line-height: 1.6;
+            opacity: 0.9;
+        }
+
+        .info {
+            margin-top: 10px;
+            font-family: monospace;
+            font-weight: bold;
+            color: #0056b3; 
+        }
+
+        /* --- 主题 UI 样式覆盖 --- */
+
+        /* 默认主题（Light） */
+        body.theme-light {
+            background-color: #f7f7f7;
+            color: #000000;
+        }
+
+        /* 1. 夜间模式 (Dark) */
+        body.theme-dark .ui-overlay {
+            background: rgba(30, 30, 30, 0.85);
+            border-color: #444;
+            color: #fff;
+        }
+        body.theme-dark .info { color: #4db8ff; }
+
+        /* 2. 粉色模式 (Pink) - 柔和 */
+        body.theme-pink .ui-overlay {
+            background: rgba(255, 240, 245, 0.9);
+            border-color: #ffb6c1;
+            color: #880e4f;
+        }
+        body.theme-pink .info { color: #d81b60; }
+
+        /* 3. 蓝色模式 (Blue) - 科技蓝图 */
+        body.theme-blue .ui-overlay {
+            background: rgba(16, 42, 67, 0.9);
+            border-color: #243b53;
+            color: #f0f4f8;
+        }
+        body.theme-blue .info { color: #62b0e8; }
+
+    </style>
+</head>
+<body class="theme-light">
+
+    <div id="canvas-container">
+        <canvas id="gridCanvas"></canvas>
+    </div>
+
+    <div class="ui-overlay" id="uiOverlay">
+        <h1>无限网格视图</h1>
+        <p>🖱️ <b>移动鼠标</b>：1/50概率生成交互块</p>
+        <p>🎨 <b>点击方块</b>：切换到方块指定的主题 (带动画)</p>
+        <p>✋ <b>按住拖拽</b>：移动视角</p>
+        <p>🐭 <b>滚轮缩放</b>：放大/缩小视图</p>
+        <div class="info" id="coord-display">坐标: (0, 0)</div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gridCanvas');
+        const ctx = canvas.getContext('2d');
+        const coordDisplay = document.getElementById('coord-display');
+
+        // 动画持续时间 (毫秒)
+        const FADE_DURATION = 200; 
+
+        // 定义主题配置
+        const THEMES = {
+            light: { // Light (日间) 对应 blockColor: White (已调换)
+                bgColor: '#f7f7f7',
+                lineColor: '#e0e0e0',
+                axisColor: '#bbbbbb',
+                highlightColor: '#000000',
+                blockColor: '#ffffff', // 更改为白色
+                highlightOpacity: 0.1
+            },
+            dark: { // Dark (夜间) 对应 blockColor: Black (已调换)
+                bgColor: '#0f0f0f',
+                lineColor: '#2a2a2a',
+                axisColor: '#444444',
+                highlightColor: '#ffffff',
+                blockColor: '#000000', // 更改为黑色
+                highlightOpacity: 0.15
+            },
+            pink: { // Pink 对应 blockColor: HotPink
+                bgColor: '#fff0f5',
+                lineColor: '#ffc0cb',
+                axisColor: '#ff69b4',
+                highlightColor: '#d6336c',
+                blockColor: '#d6336c',
+                highlightOpacity: 0.15
+            },
+            blue: { // Blue 对应 blockColor: Cyan/Teal
+                bgColor: '#001f3f',
+                lineColor: '#0074d9',
+                axisColor: '#7fdbff',
+                highlightColor: '#39cccc',
+                blockColor: '#39cccc',
+                highlightOpacity: 0.2
+            }
+        };
+
+        const THEME_KEYS = ['light', 'dark', 'pink', 'blue'];
+
+        // 状态变量
+        let state = {
+            width: 0,
+            height: 0,
+            offsetX: 0,
+            offsetY: 0,
+            isDragging: false,
+            lastMouseX: 0,
+            lastMouseY: 0,
+            hoverX: 0,
+            hoverY: 0,
+            hasMouse: false,
+            scale: 1.0,
+            minScale: 0.2,
+            maxScale: 3.0,
+            
+            // erasableBlocks 存储格式：{ gridX, gridY, targetThemeKey, isClicked: bool, fadeStartTime: number|null, fadeProgress: number }
+            erasableBlocks: [], 
+            maxErasableBlocks: 200,
+            
+            // 当前主题索引
+            themeIndex: 0 
+        };
+
+        // 获取当前主题
+        function getCurrentTheme() {
+            const key = THEME_KEYS[state.themeIndex];
+            return THEMES[key];
+        }
+
+        // 设置主题函数：根据目标主题键直接切换
+        function setTheme(targetKey) {
+            const newIndex = THEME_KEYS.indexOf(targetKey);
+            
+            if (newIndex === -1 || newIndex === state.themeIndex) {
+                // 如果目标主题无效或已是当前主题，则只重绘
+                draw();
+                return;
+            }
+
+            // 1. 移除旧的 class
+            const oldKey = THEME_KEYS[state.themeIndex];
+            document.body.classList.remove(`theme-${oldKey}`);
+
+            // 2. 更新状态
+            state.themeIndex = newIndex;
+            const newKey = THEME_KEYS[state.themeIndex];
+
+            // 3. 添加新的 class
+            document.body.classList.add(`theme-${newKey}`);
+
+            // 4. 更新 Body 背景色和文本颜色
+            const theme = THEMES[newKey];
+            document.body.style.backgroundColor = theme.bgColor;
+            
+            const isDarkish = (newKey === 'dark' || newKey === 'blue');
+            document.body.style.color = isDarkish ? '#ffffff' : '#000000';
+
+            // 5. 重绘
+            draw();
+        }
+
+        // --- 动画更新函数 ---
+        function updateFadingBlocks(currentTime) {
+            const completedBlocks = [];
+            state.erasableBlocks.forEach((block, index) => {
+                if (block.isClicked && block.fadeStartTime) {
+                    const elapsedTime = currentTime - block.fadeStartTime;
+                    // 计算动画进度 (0 到 1)
+                    block.fadeProgress = Math.min(1, elapsedTime / FADE_DURATION);
+
+                    if (block.fadeProgress >= 1) {
+                        completedBlocks.push(index);
+                    }
+                }
+            });
+
+            // 移除完成动画的块
+            for (let i = completedBlocks.length - 1; i >= 0; i--) {
+                state.erasableBlocks.splice(completedBlocks[i], 1);
+            }
+        }
+        
+        // --- 辅助函数：坐标转换 ---
+        
+        function getGridFromScreen(screenX, screenY) {
+            const currentGridSize = 50 * state.scale; 
+            return {
+                gridX: Math.floor((screenX - state.offsetX) / currentGridSize),
+                gridY: Math.floor((screenY - state.offsetY) / currentGridSize)
+            };
+        }
+
+        function resize() {
+            state.width = window.innerWidth;
+            state.height = window.innerHeight;
+            canvas.width = state.width;
+            canvas.height = state.height;
+            draw();
+        }
+
+        // 核心绘制函数
+        function draw() {
+            const theme = getCurrentTheme();
+            const currentGridSize = 50 * state.scale;
+
+            // 1. 清空画布
+            ctx.fillStyle = theme.bgColor;
+            ctx.fillRect(0, 0, state.width, state.height);
+
+            // 2. 计算范围
+            const startCol = Math.floor(-state.offsetX / currentGridSize);
+            const endCol = startCol + (state.width / currentGridSize) + 1;
+            const startRow = Math.floor(-state.offsetY / currentGridSize);
+            const endRow = startRow + (state.height / currentGridSize) + 1;
+
+            ctx.lineWidth = 1;
+
+            // 3. 绘制垂直线
+            for (let col = startCol; col <= endCol; col++) {
+                const x = Math.floor(col * currentGridSize + state.offsetX) + 0.5; 
+                ctx.beginPath();
+                ctx.strokeStyle = (col === 0) ? theme.axisColor : theme.lineColor;
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, state.height);
+                ctx.stroke();
+            }
+
+            // 4. 绘制水平线
+            for (let row = startRow; row <= endRow; row++) {
+                const y = Math.floor(row * currentGridSize + state.offsetY) + 0.5;
+                ctx.beginPath();
+                ctx.strokeStyle = (row === 0) ? theme.axisColor : theme.lineColor;
+                ctx.moveTo(0, y);
+                ctx.lineTo(state.width, y);
+                ctx.stroke();
+            }
+
+            // 5. 绘制交互块 (包括动画处理)
+            state.erasableBlocks.forEach(block => {
+                const blockColor = THEMES[block.targetThemeKey]?.blockColor || THEMES.dark.blockColor;
+                ctx.fillStyle = blockColor;
+
+                let sizeScale = 1;
+                let opacity = 1;
+
+                // 处理点击淡出/缩小动画
+                if (block.isClicked) {
+                    sizeScale = 1 - block.fadeProgress; // 0% -> 100% 进度时，尺寸从 1 到 0
+                    opacity = 1 - block.fadeProgress;   // 0% -> 100% 进度时，透明度从 1 到 0
+                }
+                
+                // 确保尺寸不会是负数
+                sizeScale = Math.max(0, sizeScale);
+                opacity = Math.max(0, opacity);
+
+                const initialGridSize = 50 * state.scale;
+                const initialDrawX = block.gridX * initialGridSize + state.offsetX;
+                const initialDrawY = block.gridY * initialGridSize + state.offsetY;
+
+                // 计算实际绘制尺寸和位置 (向中心缩小)
+                const scaledSize = initialGridSize * sizeScale;
+                const offset = (initialGridSize - scaledSize) / 2;
+                const drawX = initialDrawX + offset;
+                const drawY = initialDrawY + offset;
+
+                ctx.globalAlpha = opacity;
+
+                if (drawX + scaledSize > 0 && drawX < state.width && 
+                    drawY + scaledSize > 0 && drawY < state.height) {
+                    ctx.fillRect(drawX, drawY, scaledSize, scaledSize);
+                }
+
+                ctx.globalAlpha = 1.0; // 重置全局透明度
+            });
+
+            // 6. 绘制 Hover 高亮
+            if (state.hasMouse) {
+                const { gridX, gridY } = getGridFromScreen(state.hoverX, state.hoverY);
+                const drawX = gridX * currentGridSize + state.offsetX;
+                const drawY = gridY * currentGridSize + state.offsetY;
+
+                ctx.fillStyle = theme.highlightColor;
+                ctx.globalAlpha = theme.highlightOpacity;
+                ctx.fillRect(drawX, drawY, currentGridSize, currentGridSize);
+                ctx.globalAlpha = 1.0;
+
+                const themeName = THEME_KEYS[state.themeIndex].toUpperCase();
+                coordDisplay.innerText = `坐标: (${gridX}, ${gridY}) / 主题: ${themeName}`;
+            } else {
+                 const themeName = THEME_KEYS[state.themeIndex].toUpperCase();
+                 coordDisplay.innerText = `坐标: (-) / 主题: ${themeName}`;
+            }
+        }
+
+        function handleZoom(e) {
+            e.preventDefault();
+            const zoomFactor = (e.deltaY < 0) ? 1.1 : 0.9; 
+            const oldScale = state.scale;
+            let newScale = oldScale * zoomFactor;
+            newScale = Math.max(state.minScale, Math.min(state.maxScale, newScale));
+
+            if (newScale === oldScale) return;
+
+            const cursorWorldX = (state.hoverX - state.offsetX) / oldScale;
+            const cursorWorldY = (state.hoverY - state.offsetY) / oldScale;
+
+            state.scale = newScale;
+            state.offsetX = state.hoverX - cursorWorldX * state.scale;
+            state.offsetY = state.hoverY - cursorWorldY * state.scale;
+
+            draw();
+        }
+
+        // 动画主循环
+        function loop(currentTime) {
+            updateFadingBlocks(currentTime);
+            draw();
+            requestAnimationFrame(loop);
+        }
+
+        // --- 事件监听 ---
+
+        window.addEventListener('resize', resize);
+        canvas.addEventListener('wheel', handleZoom, { passive: false });
+
+        canvas.addEventListener('mousedown', (e) => {
+            const clickX = e.clientX;
+            const clickY = e.clientY;
+            
+            const { gridX, gridY } = getGridFromScreen(clickX, clickY);
+            
+            // 找到未被点击的块
+            const hitBlock = state.erasableBlocks.find(b => 
+                b.gridX === gridX && b.gridY === gridY && !b.isClicked
+            );
+            
+            if (hitBlock) {
+                const targetKey = hitBlock.targetThemeKey;
+                
+                // 1. 启动消除动画
+                hitBlock.isClicked = true;
+                hitBlock.fadeStartTime = performance.now();
+                
+                // 2. 切换主题
+                setTheme(targetKey); 
+                state.isDragging = false; 
+                return;
+            }
+
+            state.isDragging = true;
+            state.lastMouseX = clickX;
+            state.lastMouseY = clickY;
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            state.hasMouse = true;
+            state.hoverX = e.clientX;
+            state.hoverY = e.clientY;
+
+            // 随机生成交互块
+            if (!state.isDragging && state.erasableBlocks.length < state.maxErasableBlocks) {
+                if (Math.random() < 0.02) { // 概率已改为 1/50 (0.02)
+                    const { gridX, gridY } = getGridFromScreen(e.clientX, e.clientY);
+                    const exists = state.erasableBlocks.some(b => b.gridX === gridX && b.gridY === gridY);
+                    
+                    if (!exists) {
+                        const targetIndex = Math.floor(Math.random() * THEME_KEYS.length);
+                        const targetKey = THEME_KEYS[targetIndex];
+                        
+                        // 存储新块，初始化动画状态
+                        state.erasableBlocks.push({ 
+                            gridX, 
+                            gridY, 
+                            targetThemeKey: targetKey,
+                            isClicked: false,
+                            fadeProgress: 0,
+                            fadeStartTime: null
+                        });
+                    }
+                }
+            }
+
+            if (state.isDragging) {
+                const deltaX = e.clientX - state.lastMouseX;
+                const deltaY = e.clientY - state.lastMouseY;
+                state.offsetX += deltaX;
+                state.offsetY += deltaY;
+                state.lastMouseX = e.clientX;
+                state.lastMouseY = e.clientY;
+            }
+        });
+
+        window.addEventListener('mouseup', () => state.isDragging = false);
+        window.addEventListener('mouseleave', () => {
+            state.isDragging = false;
+            state.hasMouse = false;
+        });
+
+        // --- 触摸事件 (适配动画逻辑) ---
+        canvas.addEventListener('touchstart', (e) => {
+            const touch = e.touches[0];
+            const { gridX, gridY } = getGridFromScreen(touch.clientX, touch.clientY);
+            
+            const hitBlock = state.erasableBlocks.find(b => 
+                b.gridX === gridX && b.gridY === gridY && !b.isClicked
+            );
+            
+            if (hitBlock) {
+                hitBlock.isClicked = true;
+                hitBlock.fadeStartTime = performance.now();
+                setTheme(hitBlock.targetThemeKey);
+                return;
+            }
+
+            state.isDragging = true;
+            state.lastMouseX = touch.clientX;
+            state.lastMouseY = touch.clientY;
+            state.hasMouse = true;
+            state.hoverX = touch.clientX;
+            state.hoverY = touch.clientY;
+        }, { passive: false });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            state.hoverX = touch.clientX;
+            state.hoverY = touch.clientY;
+
+            // 触摸移动生成块的概率保持 1/20
+            if (!state.isDragging && Math.random() < 0.05) {
+                 const { gridX, gridY } = getGridFromScreen(touch.clientX, touch.clientY);
+                 if (!state.erasableBlocks.some(b => b.gridX === gridX && b.gridY === gridY)) {
+                     const targetIndex = Math.floor(Math.random() * THEME_KEYS.length);
+                     const targetKey = THEME_KEYS[targetIndex];
+                     state.erasableBlocks.push({ 
+                        gridX, 
+                        gridY, 
+                        targetThemeKey: targetKey,
+                        isClicked: false,
+                        fadeProgress: 0,
+                        fadeStartTime: null
+                    });
+                 }
+             }
+
+            if (state.isDragging) {
+                const deltaX = touch.clientX - state.lastMouseX;
+                const deltaY = touch.clientY - state.lastMouseY;
+                state.offsetX += deltaX;
+                state.offsetY += deltaY;
+                state.lastMouseX = touch.clientX;
+                state.lastMouseY = touch.clientY;
+            }
+        }, { passive: false });
+
+        canvas.addEventListener('touchend', () => state.isDragging = false);
+
+        // 初始化
+        resize();
+        setTheme(THEME_KEYS[state.themeIndex]); 
+        requestAnimationFrame(loop);
+
+    </script>
+</body>
+</html>

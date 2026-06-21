@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>ABC</title>
+		
+	</head>
+	<body style="font-size: 24px;font-family:consolas;">
+		AA AB AC AD AE AF AG AH AI AJ AK AL AM AN AO AP AQ AR AS AT AW AX AY AZ<br>
+		BA BB BC BD BE BF BG BH BI BJ BK BL BM BN BO BP BQ BR BS BT BW BX BY BZ<br>
+		CA CB CC CD CE CF CG CH CI CJ CK CL CM CN CO CP CQ CR CS CT CW CX CY CZ<br>
+		DA DB DC DD DE DF DG DH DI DJ DK DL DM DN DO DP DQ DR DS DT DW DX DY DZ<br>
+		EA EB EC ED EE EF EG EH EI EJ EK EL EM EN EO EP EQ ER ES ET EW EX EY EZ<br>
+		FA FB FC FD FE FF FG FH FI FJ FK FL FM FN FO FP FQ FR FS FT FW FX FY FZ<br>
+		GA GB GC GD GE GF GG GH GI GJ GK GL GM GN GO GP GQ GR GS GT GW GX GY GZ<br>
+		HA HB HC HD HE HF HG HH HI HJ HK HL HM HN HO HP HQ HR HS HT HW HX HY HZ<br>
+		IA IB IC ID IE IF IG IH II IJ IK IL IM IN IO IP IQ IR IS IT IW IX IY IZ<br>
+		JA JB JC JD JE JF JG JH JI JJ JK JL JM JN JO JP JQ JR JS JT JW JX JY JZ<br>
+		KA KB KC KD KE KF KG KH KI KJ KK KL KM KN KO KP KQ KR KS KT KW KX KY KZ<br>
+		LA LB LC LD LE LF LG LH LI LJ LK LL LM LN LO LP LQ LR LS LT LW LX LY LZ<br>
+		MA MB MC MD ME MF MG MH MI MJ MK ML MM MN MO MP MQ MR MS MT MW MX MY MZ<br>
+		NA NB NC ND NE NF NG NH NI NJ NK NL NM NN NO NP NQ NR NS NT NW NX NY NZ<br>
+		OA OB OC OD OE OF OG OH OI OJ OK OL OM ON OO OP OQ OR OS OT OW OX OY OZ<br>
+		PA PB PC PD PE PF PG PH PI PJ PK PL PM PN PO PP PQ PR PS PT PW PX PY PZ<br>
+		QA QB QC QD QE QF QG QH QI QJ QK QL QM QN QO QP QQ QR QS QT QW QX QY QZ<br>
+		RA RB RC RD RE RF RG RH RI RJ RK RL RM RN RO RP RQ RR RS RT RW RX RY RZ<br>
+		SA SB SC SD SE SF SG SH SI SJ SK SL SM SN SO SP SQ SR SS ST SW SX SY SZ<br>
+		TA TB TC TD TE TF TG TH TI TJ TK TL TM TN TO TP TQ TR TS TT TW TX TY TZ<br>
+		WA WB WC WD WE WF WG WH WI WJ WK WL WM WN WO WP WQ WR WS WT WW WX WY WZ<br>
+		XA XB XC XD XE XF XG XH XI XJ XK XL XM XN XO XP XQ XR XS XT XW XX XY XZ<br>
+		YA YB YC YD YE YF YG YH YI YJ YK YL YM YN YO YP YQ YR YS YT YW YX YY YZ<br>
+		ZA ZB ZC ZD ZE ZF ZG ZH ZI ZJ ZK ZL ZM ZN ZO ZP ZQ ZR ZS ZT ZW ZX ZY ZZ<br>
+		<div class="">
+			<input  style="height:40px;" id="value"  type="text" placeholder="划取字母查看解释"  oninput="change()"/>
+			<div style="height:400px;" id="text">在上方输入缩写划取查看解释</div>
+		</div>
+	    <script>
+	        function change(){
+	            document.querySelector('#text').innerHTML = document.querySelector('#value').value
+				if(document.querySelector('#value').value.length == 0){
+					document.querySelector('#text').innerHTML = "在上方输入缩写划取查看解释"
+				}
+	        }
+
+	    </script>
+		<script src="vue.min.js"></script>
+		<script src="https://lab.magiconch.com/nbnhhsh/nbnhhsh.user.js"></script>
+	</body>
+</html>

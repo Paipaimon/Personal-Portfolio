@@ -6,63 +6,233 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Projects Index</title>
     <style>
+        :root {
+            /* Default theme values - will be overridden by ThemeManager */
+            --homepage-body-bg: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            --homepage-text-color: #212529;
+            --homepage-card-bg: rgba(255, 255, 255, 0.95);
+            --homepage-card-border: rgba(0, 0, 0, 0.1);
+            --homepage-accent-color: #6c757d;
+            --homepage-shadow-color: rgba(0, 0, 0, 0.1);
+            --homepage-stat-color: #ffffff;
+            --homepage-link-bg: linear-gradient(135deg, #667eea, #764ba2);
+            --homepage-link-shadow: rgba(102, 126, 234, 0.3);
+            
+            /* Canvas properties for future use */
+            --canvas-bg-color: #f7f7f7;
+            --canvas-line-color: #e0e0e0;
+            --canvas-axis-color: #bbbbbb;
+            --canvas-highlight-color: #000000;
+            --canvas-block-color: #ffffff;
+            --canvas-highlight-opacity: 0.1;
+        }
+
+        /* Canvas Background Layer */
+        #canvas-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+            pointer-events: auto;
+            cursor: grab;
+        }
+
+        #canvas-background:active {
+            cursor: grabbing;
+        }
+
+        #canvas-background canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            user-select: none;
+            /* Add smooth transitions for theme changes */
+            transition: background-color 0.5s ease, color 0.5s ease, border-color 0.5s ease, box-shadow 0.3s ease;
         }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--homepage-body-bg);
+            color: var(--homepage-text-color);
             min-height: 100vh;
             padding: 20px;
+            /* Remove background since canvas will provide it */
+            background: transparent;
+            /* Ensure content is above canvas */
+            position: relative;
+            z-index: 1;
+        }
+        
+        a {
+            color: var(--homepage-stat-color);
+            text-decoration: none;
+        }
+
+        footer{
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            /* pointer-events: none; */
         }
 
         .container {
             max-width: 1200px;
             margin: 0 auto;
+            /* 允许canvas交互穿透，但子元素可以覆盖 */
+            pointer-events: none;
+            /* 全屏显示设置 */
+            min-height: 100vh;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
         }
 
         .header {
             text-align: center;
             margin-bottom: 40px;
-            color: white;
+            color: var(--homepage-stat-color);
+            position: relative;
+            /* 使用flexbox布局确保垂直水平居中 */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            /* 确保header浮动显示在canvas之上 */
+            z-index: 1;
+            /* 全屏高度，完全居中显示 */
+            min-height: 100vh;
+            width: 100%;
+            /* 移除padding，使用flexbox完全居中 */
+            padding: 0;
         }
 
         .header h1 {
             font-size: 3rem;
             font-weight: 700;
             margin-bottom: 10px;
-            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            text-shadow: 0 2px 10px var(--homepage-shadow-color);
+            color: var(--homepage-stat-color);
+            /* 取消块级特性，允许canvas点击穿透 */
+            pointer-events: none;
+            display: inline;
+            position: relative;
+            z-index: 1;
+            /* 确保完全透明，无任何框或背景 */
+            background: transparent;
+            border: none;
+            outline: none;
+            box-shadow: none;
+            padding: 0;
+            border-radius: 0;
+            backdrop-filter: none;
         }
 
         .header p {
             font-size: 1.2rem;
             opacity: 0.9;
             margin-bottom: 20px;
+            color: var(--homepage-stat-color);
+            /* 取消块级特性，允许canvas点击穿透 */
+            pointer-events: none;
+            display: inline;
+            position: relative;
+            z-index: 1;
+            /* 确保完全透明，无任何框或背景 */
+            background: transparent;
+            border: none;
+            outline: none;
+            box-shadow: none;
+            padding: 0;
+            border-radius: 0;
+            backdrop-filter: none;
         }
+
+        /* Theme Indicator */
+        .theme-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            gap: 8px;
+            background: var(--homepage-card-bg);
+            padding: 12px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px var(--homepage-shadow-color);
+            border: 1px solid var(--homepage-card-border);
+        }
+
+        .theme-button {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .theme-button:hover {
+            transform: scale(1.1);
+            border-color: var(--homepage-text-color);
+        }
+
+        .theme-button.active {
+            border-color: var(--homepage-text-color);
+            box-shadow: 0 0 0 2px var(--homepage-card-bg), 0 0 0 4px var(--homepage-text-color);
+        }
+
+        .theme-button.light { background: linear-gradient(135deg, #f8f9fa, #e9ecef); }
+        .theme-button.dark { background: linear-gradient(135deg, #1a1a1a, #2d2d2d); }
+        .theme-button.pink { background: linear-gradient(135deg, #fce4ec, #ffaed6); }
+        .theme-button.blue { background: linear-gradient(135deg, #0d47a1, #1565c0); }
 
         .stats {
             display: flex;
             justify-content: center;
             gap: 30px;
             margin-bottom: 20px;
+            /* 继承container的pointer-events: none */
         }
 
         .stat-item {
             text-align: center;
+            /* 取消块级特性，允许canvas点击穿透 */
+            pointer-events: none;
+            display: inline-block;
+            position: relative;
+            z-index: 1;
         }
 
         .stat-number {
             font-size: 2rem;
             font-weight: bold;
-            display: block;
+            display: inline;
+            color: var(--homepage-stat-color);
+            /* 取消块级特性，允许canvas点击穿透 */
+            pointer-events: none;
+            position: relative;
+            z-index: 1;
         }
 
         .stat-label {
             font-size: 0.9rem;
             opacity: 0.8;
+            color: var(--homepage-stat-color);
+            /* 取消块级特性，允许canvas点击穿透 */
+            pointer-events: none;
+            display: inline;
+            position: relative;
+            z-index: 1;
         }
 
         .project-list {
@@ -70,38 +240,101 @@
             grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
             gap: 25px;
             padding: 0;
+            /* 恢复交互以允许项目卡片点击 */
+            pointer-events: auto;
+            /* 正常显示项目列表 */
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            /* 确保项目列表在header下方显示 */
+            margin-top: 40px;
+            position: relative;
+            top: 0;
+        }
+
+        /* 项目列表显示状态 */
+        .project-list.revealed {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+
+        /* 一次滚动模式：确保项目列表在顶部 */
+        .project-list.single-scroll-mode {
+            margin-top: 20px;
+            position: relative;
+            top: 0;
+            pointer-events: auto;
+        }
+
+        /* 当项目列表显示时，隐藏滚动指示器 */
+        .scroll-indicator.project-mode {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* 滚动提示样式 */
+        .scroll-hint {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            color: var(--homepage-stat-color);
+            opacity: 0.8;
+            pointer-events: auto;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .scroll-hint:hover {
+            opacity: 1;
+            transform: translateX(-50%) scale(1.1);
+        }
+
+        .scroll-hint span {
+            display: block;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+            color: var(--homepage-stat-color);
+        }
+
+        .scroll-arrow {
+            position: relative;
+            bottom: 40px;
+            font-size: 48px;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {
+                transform: translateY(0);
+            }
+            40% {
+                transform: translateY(-10px);
+            }
+            60% {
+                transform: translateY(-5px);
+            }
         }
 
         .project-item {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
+            background: var(--homepage-card-bg);
             border-radius: 16px;
             padding: 24px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px var(--homepage-shadow-color);
+            border: 1px solid var(--homepage-card-border);
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
-            overflow: hidden;
-        }
-
-        .project-item::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-            transition: left 0.5s;
-        }
-
-        .project-item:hover::before {
-            left: 100%;
+            /* 确保项目卡片可以交互 */
+            pointer-events: auto;
+            /* 正常显示状态 */
+            opacity: 1;
+            transform: translateY(0);
         }
 
         .project-item:hover {
             transform: translateY(-8px) scale(1.02);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 20px 40px var(--homepage-shadow-color);
         }
 
         .project-header {
@@ -114,7 +347,7 @@
             width: 48px;
             height: 48px;
             border-radius: 12px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            background: var(--homepage-link-bg);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -127,19 +360,20 @@
         .project-title {
             font-size: 1.4rem;
             font-weight: 600;
-            color: #2d3748;
+            color: var(--homepage-text-color);
             margin-bottom: 4px;
         }
 
         .project-type {
             font-size: 0.85rem;
-            color: #718096;
+            color: var(--homepage-accent-color);
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
 
         .project-description {
-            color: #4a5568;
+            color: var(--homepage-text-color);
+            opacity: 0.8;
             line-height: 1.6;
             margin-bottom: 16px;
             font-size: 0.95rem;
@@ -153,7 +387,7 @@
         }
 
         .tag {
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            background: var(--homepage-link-bg);
             color: white;
             padding: 4px 12px;
             border-radius: 20px;
@@ -164,19 +398,19 @@
         .project-link {
             display: inline-flex;
             align-items: center;
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            background: var(--homepage-link-bg);
             color: white;
             padding: 12px 24px;
             border-radius: 8px;
             text-decoration: none;
             font-weight: 500;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            box-shadow: 0 4px 15px var(--homepage-link-shadow);
         }
 
         .project-link:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 8px 25px var(--homepage-link-shadow);
             text-decoration: none;
         }
 
@@ -190,13 +424,19 @@
             transform: translateX(4px);
         }
 
+        /* Enhanced responsive design with theme compatibility */
         @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
             .header h1 {
                 font-size: 2.5rem;
             }
 
             .stats {
                 gap: 20px;
+                flex-wrap: wrap;
             }
 
             .project-list {
@@ -207,36 +447,70 @@
             .project-item {
                 padding: 20px;
             }
+            
+            .theme-indicator {
+                top: 10px;
+                right: 10px;
+                padding: 8px;
+                gap: 6px;
+            }
+            
+            .theme-button {
+                width: 28px;
+                height: 28px;
+            }
         }
 
         @media (max-width: 480px) {
             .header h1 {
                 font-size: 2rem;
             }
+            
+            .header p {
+                font-size: 1rem;
+            }
 
             .stats {
                 flex-direction: column;
                 gap: 15px;
             }
-
-            .project-header {
-                flex-direction: column;
-                text-align: center;
+            
+            .project-item {
+                padding: 16px;
             }
-
-            .project-icon {
-                margin-right: 0;
-                margin-bottom: 12px;
+            
+            .theme-indicator {
+                top: 8px;
+                right: 8px;
+                padding: 6px;
+            }
+            
+            .theme-button {
+                width: 24px;
+                height: 24px;
             }
         }
     </style>
 </head>
 
 <body>
+    <!-- Canvas Background Layer -->
+    <div id="canvas-background">
+        <canvas id="gridCanvas"></canvas>
+    </div>
+
+    <!-- Theme Indicator -->
+    <div class="theme-indicator" id="themeIndicator">
+        <div class="theme-button light" data-theme="light" title="浅色主题 (1)"></div>
+        <div class="theme-button dark" data-theme="dark" title="深色主题 (2)"></div>
+        <div class="theme-button pink" data-theme="pink" title="粉色主题 (3)"></div>
+        <div class="theme-button blue" data-theme="blue" title="蓝色主题 (4)"></div>
+    </div>
+
     <div class="container">
         <div class="header">
-            <h1>我的作品集</h1>
-            <p>探索创意与技术的完美结合</p>
+            <h1>个人电子垃圾</h1>
+            <p>探索创意与技术的结合</p>
             <div class="stats">
                 <div class="stat-item">
                     <span class="stat-number" id="projectCount">0</span>
@@ -251,152 +525,53 @@
                     <span class="stat-label">分类</span>
                 </div>
             </div>
+            <!-- 滚动提示 -->
+            <div class="scroll-hint">
+                <div class="scroll-arrow"><a name="projectsList">↓</a></div>
+            </div>
         </div>
         <div class="project-list" id="projectList"></div>
     </div>
 
+    <footer style="text-align: center; padding: 10px; font-size: small;">
+        <p style="margin: 0;">Copyright &copy; 2028 Jlands. All rights reserved.</p>
+        <p style="margin: 0;"><a href="http://beian.miit.gov.cn/" target="_blank">蜀ICP备2022028857号-2</a></p>
+        <p style="margin: 0;"><a href="https://beian.mps.gov.cn/#/query/webSearch?code=51102502000159" rel="noreferrer" target="_blank">川公网安备51102502000159号</a></p>
+        <p style="margin: 0;"><a href="/old" rel="noreferrer" target="_blank">旧网址</a></p>
+    </footer>
+
+    <div class="air-wall" style="height: 100vh;pointer-events: none;"></div>
+
+    <!-- Theme System Scripts -->
+    <script src="js/theme-config.js"></script>
+    <script src="js/theme-manager.js"></script>
+    <script src="js/canvas-background-controller.js"></script>
+    <script src="js/homepage-theme-adapter.js"></script>
+    
+    <!-- Project Data -->
+    <script src="js/projects-data.js"></script>
+    
+    <!-- Modular Controllers -->
+    <script src="js/theme-system-controller.js"></script>
+    <script src="js/project-display-controller.js"></script>
+    <script src="js/homepage-controller.js"></script>
+    
+    <!-- Responsive Design Validation (for testing) -->
+    <script src="validate-responsive-design.js"></script>
     <script>
-        const projects = [
-            {
-                name: 'ABC',
-                title: 'ABC 交互应用',
-                type: 'Tool',
-                description: '这是一个专门用于查询英文缩写和网络用语含义的Web应用工具，采用现代化的界面设计和交互体验。',
-                tags: ['Vue.js', 'JavaScript', 'CSS3','API'],
-                icon: 'A',
-                folder: 'ABC'
-            },
-            {
-                name: 'ClickHere',
-                title: 'ClickHere 游戏',
-                type: 'Game',
-                description: '一个有趣的点击游戏，包含音效和动画效果，测试你的反应速度和准确性。',
-                tags: ['HTML5', 'CSS3', 'Audio'],
-                icon: '🎮',
-                folder: 'ClickHere'
-            },
-            {
-                name: 'PinkBang',
-                title: 'PinkBang 特效',
-                type: 'Animation',
-                description: '炫酷的视觉特效展示，使用纯CSS3实现的动画效果和粒子系统。',
-                tags: ['CSS3', 'Animation', 'Effects'],
-                icon: '💥',
-                folder: 'PinkBang'
-            },
-            {
-                name: 'Counter',
-                title: '计数器应用',
-                type: 'Full Stack',
-                description: '是一个基于 Web 的数字小球判断游戏，玩家需要快速准确地判断屏幕上显示的小球数量。',
-                tags: ['Node.js', 'Express', 'JavaScript','MongoDB'],
-                icon: '📊',
-                folder: 'counter'
-            },
-            {
-                name: 'CPS',
-                title: 'CPS 测试器',
-                type: 'Tool',
-                description: '点击速度测试工具，精确测量每秒点击次数，提供详细的统计数据。',
-                tags: ['JavaScript', 'Performance', 'Testing'],
-                icon: '⚡',
-                folder: 'cps'
-            },
-            {
-                name: 'Typing',
-                title: '打字练习',
-                type: 'Education',
-                description: '在线打字练习工具，帮助提高打字速度和准确性，支持多种练习模式。',
-                tags: ['JavaScript', 'Education', 'UI/UX'],
-                icon: '⌨️',
-                folder: 'typing'
-            },
-            {
-                name: 'Error Choice',
-                title: '错误选择',
-                type: 'Interactive',
-                description: '交互式选择游戏，通过有趣的方式展示不同选择的后果。',
-                tags: ['HTML5', 'JavaScript', 'Interactive'],
-                icon: '❓',
-                folder: 'error-choice'
-            },
-            {
-                name: 'Favorites Style',
-                title: '收藏夹样式',
-                type: 'Tool',
-                description: '美化浏览器收藏夹的样式工具，提供现代化的书签管理界面。',
-                tags: ['CSS3', 'Bookmarks', 'Styling'],
-                icon: '⭐',
-                folder: 'favorites-style'
-            },
-            {
-                name: 'OSS',
-                title: 'OSS 管理器',
-                type: 'Utility',
-                description: '对象存储服务管理工具，包含文件上传、管理和Node.js后端支持。',
-                tags: ['Node.js', 'File Upload', 'Storage'],
-                icon: '☁️',
-                folder: 'oss'
+        // 主页面初始化
+        let homepageController;
+        
+        window.onload = async function () {
+            try {
+                // 创建并初始化主页面控制器
+                homepageController = new HomepageController();
+                await homepageController.initialize();
+                
+                console.log('主页面加载完成');
+            } catch (error) {
+                console.error('主页面初始化失败:', error);
             }
-        ];
-
-        function updateStats() {
-            const projectCount = projects.length;
-            const allTags = projects.flatMap(p => p.tags);
-            const uniqueTags = [...new Set(allTags)];
-            const categories = [...new Set(projects.map(p => p.type))];
-
-            document.getElementById('projectCount').textContent = projectCount;
-            document.getElementById('techCount').textContent = uniqueTags.length;
-            document.getElementById('categoryCount').textContent = categories.length;
-        }
-
-        function createProjectCard(project) {
-            const projectDiv = document.createElement('div');
-            projectDiv.className = 'project-item';
-
-            projectDiv.innerHTML = `
-                <div class="project-header">
-                    <div class="project-icon">${project.icon}</div>
-                    <div>
-                        <div class="project-title">${project.title}</div>
-                        <div class="project-type">${project.type}</div>
-                    </div>
-                </div>
-                <div class="project-description">${project.description}</div>
-                <div class="project-tags">
-                    ${project.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
-                </div>
-                <a href="./${project.folder}/index.html" class="project-link">查看项目</a>
-            `;
-
-            return projectDiv;
-        }
-
-        window.onload = function () {
-            updateStats();
-            
-            const projectList = document.getElementById('projectList');
-            projects.forEach(project => {
-                const projectCard = createProjectCard(project);
-                projectList.appendChild(projectCard);
-            });
-
-            // 添加数字动画效果
-            const statNumbers = document.querySelectorAll('.stat-number');
-            statNumbers.forEach(stat => {
-                const target = parseInt(stat.textContent);
-                let current = 0;
-                const increment = target / 30;
-                const timer = setInterval(() => {
-                    current += increment;
-                    if (current >= target) {
-                        current = target;
-                        clearInterval(timer);
-                    }
-                    stat.textContent = Math.floor(current);
-                }, 50);
-            });
         };
     </script>
 </body>

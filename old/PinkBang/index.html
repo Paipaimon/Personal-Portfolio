@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>PinkBang</title>
+		<style type="text/css">
+			body{
+				background-color: aqua;
+				margin: 0px;
+			}
+			
+			#pinkChange {
+				height: 1000px;
+				width: 100%;
+				background-color: pink;
+				color: black;
+				text-align: center;
+			}
+			#stop{
+				width: 100px;
+				height: 40px;
+				z-index: 100;
+			}
+		</style>
+		<script type="text/javascript">
+			var r = 0; //241-255
+			var g = 0; //156-212
+			var b = 0; //177-226
+			var startRed = 1;
+			var endRed = 255;
+			var startGreen = 1;
+			var endGreen = 255;
+			var startBlue = 1;
+			var endBlue = 255;
+			var time = 0;
+			var index = 0;
+			function start() {
+				clearInterval(time);
+				if(index%2 == 0){
+					time = setInterval(change , 10);
+				}else
+					clearInterval(time);
+				index++;
+				console.log(time);
+			}
+
+			function change() {
+				//三个数同时加
+				// if (r == endRed) {
+				// 	r = startRed;
+				// } else {
+				// 	r++;
+				// }
+				// if (g == endGreen) {
+				// 	g = startGreen;
+				// } else {
+				// 	g++;
+				// }
+				// if (b == endBlue) {
+				// 	b = startBlue;
+				// }else {
+				// 	b++;
+				// }
+				/*
+				// 一个数加完再加下一个
+				r++;
+				if(r == endRed){
+					r = startRed;
+					g++;
+					if(g == endGreen){
+						g = startGreen;
+						b++;
+						if(b == endBlue){
+							b = startBlue;
+						}
+					}
+				}
+				*/
+				//随机变化
+				r = Math.floor(Math.random() * 255);
+				g = Math.floor(Math.random() * 255);
+				b = Math.floor(Math.random() * 255);
+				
+				var sRgb = "RGB(" + r + ", " + g + ", " + b + ")";//获取RGB值
+				var sHexColor = sRgb.colorHex(); //转换为十六进制方法
+				//console.log(sHexColor);
+				//console.log(r, g, b);
+				document.getElementById("pinkChange").style.backgroundColor = sHexColor;
+				//document.getElementsByTagName("body").style.backgroundColor = sHexColor;
+				document.getElementById("rgb-number").innerHTML = sRgb;
+			}
+			var reg = /^#([0-9a-fA-f]{3}|[0-9a-fA-f]{6})$/; //十六进制颜色值的正则表达式
+			/*RGB颜色转换为16进制*/
+			String.prototype.colorHex = function() {
+				var that = this;
+				if (/^(rgb|RGB)/.test(that)) {
+					var aColor = that.replace(/(?:\(|\)|rgb|RGB)*/g, "").split(",");
+					var strHex = "#";
+					for (var i = 0; i < aColor.length; i++) {
+						var hex = Number(aColor[i]).toString(16);
+						if (hex === "0") {
+							hex += hex;
+						}
+						strHex += hex;
+					}
+					if (strHex.length !== 7) {
+						strHex = that;
+					}
+					return strHex;
+				} else if (reg.test(that)) {
+					var aNum = that.replace(/#/, "").split("");
+					if (aNum.length === 6) {
+						return that;
+					} else if (aNum.length === 3) {
+						var numHex = "#";
+						for (var i = 0; i < aNum.length; i += 1) {
+							numHex += (aNum[i] + aNum[i]);
+						}
+						return numHex;
+					}
+				} else {
+					return that;
+				}
+			}
+			
+			// document.getElementsByClassName()
+		</script>
+	</head>
+	<body>
+		
+		<div id="pinkChange" onclick="start();"> 
+			<div id="rgb-number">
+				RGB(000,000,000)
+			</div>
+		</div>
+	</body>
+</html>

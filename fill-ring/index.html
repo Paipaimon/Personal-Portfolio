@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>膨胀圆圈挑战</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #1a1a2e;
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            user-select: none;
+            /* 禁止右键菜单触发时的默认选中文本行为 */
+            -webkit-user-select: none;
+            cursor: crosshair;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        canvas {
+            display: block;
+            z-index: 1;
+        }
+
+        .ui-layer {
+            position: absolute;
+            z-index: 10;
+            text-align: center;
+            pointer-events: none;
+        }
+
+        #controls-hint {
+            position: absolute;
+            bottom: 30px;
+            width: 100%;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 1.1rem;
+            pointer-events: none;
+        }
+
+        .legend {
+            display: inline-block;
+            margin: 0 15px;
+            font-weight: bold;
+        }
+        .legend span {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+
+        /* 胜利界面 */
+        #win-screen {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 20;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px);
+        }
+
+        h1 {
+            font-size: 4rem;
+            color: #4cc9f0;
+            margin: 0 0 20px 0;
+            text-shadow: 0 0 20px #4cc9f0;
+            animation: pulse 1.5s infinite;
+        }
+
+        button {
+            pointer-events: auto;
+            background: linear-gradient(45deg, #f72585, #7209b7);
+            border: none;
+            padding: 15px 40px;
+            color: white;
+            font-size: 1.5rem;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(247, 37, 133, 0.4);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(247, 37, 133, 0.6);
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div id="controls-hint">
+            <div style="margin-bottom: 10px;">按住对应的鼠标键或方向键以填满圆圈！松开会缓慢缩小。</div>
+            <div class="legend"><span style="background: #4cc9f0;"></span>左键</div>
+            <div class="legend"><span style="background: #f72585;"></span>右键</div>
+        </div>
+
+        <!-- 胜利界面 -->
+        <div id="win-screen">
+            <h1>胜利!</h1>
+            <!-- 用于显示用时 -->
+            <p id="time-display" style="font-size: 1.5rem; color: #4cc9f0; margin-bottom: 20px; font-weight: bold;">用时: 0.00 秒</p>
+            <p style="font-size: 1.2rem; color: #ddd; margin-bottom: 30px;">反应完美！</p>
+            <button onclick="resetGame()">再玩一次</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const winScreen = document.getElementById('win-screen');
+        const timeDisplay = document.getElementById('time-display');
+
+        // 颜色配置
+        const COLOR_LEFT = '#4cc9f0'; // 青色 - 对应左键/左方向键
+        const COLOR_RIGHT = '#f72585'; // 粉色 - 对应右键/右方向键
+        
+        // 输入常量
+        const MOUSE_LEFT = 0;
+        const MOUSE_RIGHT = 2;
+        const KEY_LEFT = 'ArrowLeft';
+        const KEY_RIGHT = 'ArrowRight';
+
+        // 游戏状态
+        let state = {
+            outerRadius: 0,
+            innerRadius: 0,
+            targetButton: MOUSE_LEFT, // 目标输入: 0: 左侧 (鼠标左/左箭), 2: 右侧 (鼠标右/右箭)
+            isPlaying: false,
+            centerX: 0,
+            centerY: 0,
+            growthRate: 0,    
+            decayRate: 0,     
+            penaltyRate: 0,   
+            switchTimer: null, 
+            shakeOffset: {x: 0, y: 0}, 
+            startTime: null, 
+            elapsedTime: 0,
+            
+            // 新增：追踪按键和鼠标状态
+            isLeftInputDown: false,
+            isRightInputDown: false,
+        };
+
+        // 鼠标事件处理
+        function handleMouseDown(e) {
+            if (!state.isPlaying) return;
+            if (e.button === MOUSE_LEFT) state.isLeftInputDown = true;
+            if (e.button === MOUSE_RIGHT) state.isRightInputDown = true;
+            // 禁用右键菜单
+            if (e.button === MOUSE_RIGHT) e.preventDefault(); 
+        }
+
+        function handleMouseUp(e) {
+            if (e.button === MOUSE_LEFT) state.isLeftInputDown = false;
+            if (e.button === MOUSE_RIGHT) state.isRightInputDown = false;
+        }
+
+        function handleMouseLeave() {
+            // 鼠标移出窗口时，假定松开所有鼠标键
+            state.isLeftInputDown = false;
+            state.isRightInputDown = false;
+        }
+
+        // 键盘事件处理
+        function handleKeyDown(e) {
+            if (!state.isPlaying || e.repeat) return;
+            
+            if (e.key === KEY_LEFT) {
+                state.isLeftInputDown = true;
+            } else if (e.key === KEY_RIGHT) {
+                state.isRightInputDown = true;
+            }
+
+            // 阻止方向键的默认滚动行为
+            if (e.key === KEY_LEFT || e.key === KEY_RIGHT) {
+                e.preventDefault();
+            }
+        }
+
+        function handleKeyUp(e) {
+            if (e.key === KEY_LEFT) state.isLeftInputDown = false;
+            if (e.key === KEY_RIGHT) state.isRightInputDown = false;
+        }
+
+
+        // 初始化
+        function init() {
+            resize();
+            window.addEventListener('resize', resize);
+            
+            // 禁用右键菜单 (防止上下文菜单出现)
+            document.addEventListener('contextmenu', event => event.preventDefault());
+            
+            // 绑定新的输入事件
+            document.addEventListener('mousedown', handleMouseDown);
+            document.addEventListener('mouseup', handleMouseUp);
+            document.addEventListener('mouseleave', handleMouseLeave);
+            document.addEventListener('keydown', handleKeyDown);
+            document.addEventListener('keyup', handleKeyUp);
+
+            resetGame();
+            animate();
+        }
+
+        // 窗口大小调整
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            state.centerX = canvas.width / 2;
+            state.centerY = canvas.height / 2;
+            
+            const minDim = Math.min(canvas.width, canvas.height);
+            state.outerRadius = (minDim * 0.5) / 2; 
+        }
+
+        // 重置游戏
+        function resetGame() {
+            state.innerRadius = 20;
+            state.isPlaying = true;
+            winScreen.style.display = 'none';
+            timeDisplay.textContent = '用时: 0.00 秒'; 
+            
+            // 重置输入状态
+            state.isLeftInputDown = false;
+            state.isRightInputDown = false;
+            
+            // 记录游戏开始时间
+            state.startTime = Date.now();
+
+            // 动态计算难度参数 (基于帧率，假设60fps)
+            // 增长：变大量减少 (数值不变，保持之前的难度)
+            state.growthRate = state.outerRadius / 2000; 
+            
+            // 衰减：略微加快，以配合难度提升
+            state.decayRate = state.outerRadius / 1000; 
+            
+            // 惩罚：按错时缩小的速度比增长快一点，作为惩罚
+            state.penaltyRate = state.outerRadius / 1000;
+
+            startRandomSwitcher();
+        }
+
+        // 随机切换目标按键（左或右）
+        function startRandomSwitcher() {
+            if (!state.isPlaying) return;
+
+            // 随机设置目标: 0(左侧) 或 2(右侧)
+            state.targetButton = Math.random() > 0.5 ? MOUSE_LEFT : MOUSE_RIGHT;
+
+            // 设置下一次切换的时间：频率
+            const nextTime = 600 + Math.random() * 200; 
+            
+            clearTimeout(state.switchTimer);
+            state.switchTimer = setTimeout(startRandomSwitcher, nextTime);
+        }
+
+        // 胜利逻辑
+        function winGame() {
+            // 1. 计算用时
+            state.elapsedTime = Date.now() - state.startTime;
+            const seconds = (state.elapsedTime / 1000).toFixed(2);
+            
+            // 2. 更新用时显示
+            timeDisplay.textContent = `用时: ${seconds} 秒`;
+
+            // 3. 结束游戏状态
+            state.innerRadius = state.outerRadius;
+            state.isPlaying = false;
+            clearTimeout(state.switchTimer);
+            winScreen.style.display = 'flex';
+        }
+
+        // 绘制循环 & 游戏逻辑更新
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 更新逻辑 (每帧执行)
+            if (state.isPlaying && state.outerRadius > 0) {
+                
+                // 1. 确定当前用户按下了哪个方向的有效输入（鼠标或键盘）
+                const isLeftActive = state.isLeftInputDown;
+                const isRightActive = state.isRightInputDown;
+
+                let inputActive = false;
+                let isCorrectInput = false;
+
+                if (isLeftActive && !isRightActive) {
+                    // 只有左侧输入是活跃的
+                    inputActive = true;
+                    isCorrectInput = (state.targetButton === MOUSE_LEFT);
+                } else if (isRightActive && !isLeftActive) {
+                    // 只有右侧输入是活跃的
+                    inputActive = true;
+                    isCorrectInput = (state.targetButton === MOUSE_RIGHT);
+                }
+
+                // --- 核心更新逻辑 ---
+
+                if (inputActive) {
+                    if (isCorrectInput) {
+                        // 按对了：增长
+                        state.innerRadius += state.growthRate;
+                        state.shakeOffset.x = 0;
+                        state.shakeOffset.y = 0;
+                        if (state.innerRadius >= state.outerRadius) {
+                            winGame();
+                        }
+                    } else {
+                        // 按错了：惩罚性缩小
+                        state.innerRadius -= state.penaltyRate;
+                        
+                        // 震动效果
+                        state.shakeOffset.x = (Math.random() - 0.5) * 10;
+                        state.shakeOffset.y = (Math.random() - 0.5) * 10;
+                    }
+                } else {
+                    // 2. 如果没有有效的单侧输入（包括同时按下两个键或都没按）：缓慢自然衰减
+                    state.innerRadius -= state.decayRate;
+                    state.shakeOffset.x = 0;
+                    state.shakeOffset.y = 0;
+                }
+
+                // 边界检查
+                if (state.innerRadius < 0) state.innerRadius = 0;
+            } else {
+                state.shakeOffset.x = 0;
+                state.shakeOffset.y = 0;
+            }
+
+            // 绘制部分
+            if (state.outerRadius > 0) {
+                ctx.save();
+                // 应用震动
+                ctx.translate(state.shakeOffset.x, state.shakeOffset.y);
+
+                // 1. 绘制外圆 (空心)
+                ctx.beginPath();
+                ctx.arc(state.centerX, state.centerY, state.outerRadius, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.lineWidth = 8;
+                ctx.stroke();
+
+                // 2. 绘制内圆 (实心)
+                // 颜色由当前目标决定
+                const targetColor = state.targetButton === MOUSE_LEFT ? COLOR_LEFT : COLOR_RIGHT;
+                
+                ctx.beginPath();
+                ctx.arc(state.centerX, state.centerY, state.innerRadius, 0, Math.PI * 2);
+                ctx.fillStyle = targetColor;
+                
+                // 发光效果
+                ctx.shadowBlur = 30;
+                ctx.shadowColor = targetColor;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+
+                // 3. 辅助提示点 (圆心)
+                // 在圆心画一个小点，始终显示当前目标颜色，防止内圆太小看不清
+                ctx.beginPath();
+                ctx.arc(state.centerX, state.centerY, 8, 0, Math.PI * 2);
+                ctx.fillStyle = targetColor;
+                ctx.fill();
+
+                ctx.restore();
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        init();
+
+    </script>
+</body>
+</html>

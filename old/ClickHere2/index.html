@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+		<title>点击这里!</title>
+		<style type="text/css">
+			body {
+				font-family: "幼圆";
+				font-weight: bold;
+				user-select: none;
+				color: white;
+			}
+
+			#title {
+				width: 200px;
+				border: rgba(255, 0, 0, 1.0) solid 4px;
+				background-color: rgba(255, 100, 100, 1.0);
+				user-select: none;
+				text-align: center;
+				margin: 10px auto;
+			}
+			#timer{
+				width: 200px;
+				border: rgb(0, 0, 255) solid 4px;
+				background-color: rgba(100, 100, 255, 1.0);
+				user-select: none;
+				text-align: center;
+				margin: 10px auto;
+			}
+			#box {
+				width: 120px;
+				height: 120px;
+				border-radius: 50%;
+				background-color: red;
+				position: absolute;
+				left: 120px;
+				top: 120px;
+			}
+
+			#text {
+				line-height: 120px;
+				text-align: center;
+				font-size: 30px;
+				margin: 0 auto;
+
+			}
+		</style>
+		
+	</head>
+	<body>
+		<div id="title">
+			<div>球的大小</div>
+			<div id="sizeTxet">120px</div>
+			<input type="range" name="points" id="points" onclick="setSize(this)" min="20" max="120" value="120" hidden>
+		</div>
+		<div id="timer">
+			<div>用时</div>
+			<div id="timeTxet">0.00s</div>
+		</div>
+		<div id="box" onclick="move(this)">
+			<div id="text">点我</div>
+		</div>
+		<script type="text/javascript">
+            var size = 0;
+            var timer = 0;
+            var points = document.getElementById("points");
+            var startTime = null; // 用于存储开始时间
+            function setSize(obj) {
+                size = obj.value;
+                document.getElementById("box").style.height = size + "px";
+                document.getElementById("box").style.width = size + "px";
+                document.getElementById("text").style.fontSize = size / 4 + "px";
+                document.getElementById("text").style.lineHeight = size + "px";
+                document.getElementById("sizeTxet").innerHTML = size + "px";
+
+            }
+
+            function move(obj) {
+                var width = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
+                var height = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
+                var randomHeight = Math.floor(Math.random() * (height - size)); //获取随机数
+                var randomWidth = Math.floor(Math.random() * (width - size)); //获取随机数
+                console.log("Height:" + height, "Width:" + width);
+                console.log("randomHeight:" + randomHeight, "randomWidth:" + randomWidth, );
+                obj.style.left = (randomWidth) + "px";
+                obj.style.top = (randomHeight) + "px";
+
+                if (!startTime) { // 首次点击时启动计时器
+                    startTime = new Date();
+                    timer = setInterval(showTime, 10); // 每10毫秒更新一次时间
+                }
+
+                points.value -= 1; //每次点击减一
+                setSize(points); //更新大小
+
+                if (points.value == 20) {
+                    clearInterval(timer); // 停止计时器
+                    var endTime = new Date();
+                    var timeDiff = (endTime - startTime) / 1000; // 计算用时，单位为秒
+                    alert("游戏结束，用时: " + timeDiff.toFixed(2) + " 秒");
+                }
+            }
+            function showTime() {
+                var currentTime = new Date();
+                var timeDiff = (currentTime - startTime) / 1000;
+                document.getElementById("timeTxet").innerText = timeDiff.toFixed(2) + "s";
+            }
+        </script>
+	</body>
+</html>
