@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>加载收藏夹...</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', 'Segoe UI', Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: #f5f5f5;
+            color: #333;
+        }
+        .viewer-message {
+            text-align: center;
+            padding: 40px;
+        }
+        .viewer-message.error {
+            color: #c0392b;
+        }
+        .viewer-message a {
+            color: #3498db;
+        }
+    </style>
+</head>
+<body>
+    <div id="viewer-loading" class="viewer-message">正在加载收藏夹...</div>
+    <div id="viewer-error" class="viewer-message error" style="display:none;">
+        加载失败。<a href="index.html">返回首页</a>
+    </div>
+    <script src="js/favorites-storage.js"></script>
+    <script src="js/favorites-viewer.js"></script>
+</body>
+</html>

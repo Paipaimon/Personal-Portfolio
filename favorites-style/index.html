@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>美化收藏夹</title>
+    <link rel="stylesheet" href="css/favorites-style.css">
+</head>
+<body>
+    <div class="favorites-container">
+        <h2>美化收藏夹</h2>
+
+        
+        <div class="upload-section">
+            <h3 class="section-title">上传收藏夹</h3>
+            <p class="section-desc">从浏览器导出书签 HTML 后上传，文件仅保存在本机浏览器中，不会上传到云端。</p>
+            <div id="upload-zone" class="upload-zone" tabindex="0" role="button" aria-label="点击或拖拽上传收藏夹文件">
+                <div class="upload-icon">📁</div>
+                <p class="upload-text">点击选择或拖拽 HTML 收藏夹文件到此处</p>
+                <p class="upload-hint">支持 Chrome / Edge 导出的 .html 书签文件</p>
+            </div>
+            <input type="file" id="bookmark-upload" accept=".html,.htm,text/html" multiple hidden>
+            <div id="upload-status" class="upload-status" style="display:none;"></div>
+        </div>
+
+        <div id="uploaded-section" class="file-section" style="display:none;">
+            <h3 class="section-title">我的收藏夹</h3>
+            <div id="uploaded-list" class="file-selector"></div>
+        </div>
+
+        <div class="file-section">
+            <h3 class="section-title">示例收藏夹</h3>
+            <div class="file-selector">
+                <a href="favorites_2025_12_29.html" class="file-link">2025年12月29日收藏夹(Edge)</a>
+                <a href="favorites_2025_6_10.html" class="file-link">2025年6月10日收藏夹(Edge)</a>
+                <a href="bookmarks_2025_6_10.html" class="file-link">2025年6月10日收藏夹(Chrome)</a>
+            </div>
+        </div>
+
+        <div class="instructions">
+            <h3>使用说明</h3>
+            <p>上传或点击链接查看收藏夹，页面已添加以下功能：</p>
+            <ul>
+                <li>美化的界面样式</li>
+                <li>文件夹折叠/展开功能</li>
+                <li>搜索功能</li>
+                <li>返回顶部按钮</li>
+                <li>主题切换功能（亮色、粉色）</li>
+                <li>本地上传与管理（数据存于浏览器 IndexedDB）</li>
+            </ul>
+            <p class="export-tip"><strong>如何导出收藏夹：</strong>Chrome/Edge → 书签管理器 → 右上角 ⋮ → 导出书签</p>
+        </div>
+        
+        <!-- 主题切换按钮 -->
+        <div id="theme-container">
+            <div id="pink-theme-toggle" title="切换粉色主题">🌸</div>
+        </div>
+    </div>
+    
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', 'Segoe UI', Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        
+        /* 粉色主题 */
+        body.pink-theme {
+            background-color: #fff0f5;
+            color: #5a2d5a;
+        }
+        
+        body.pink-theme .favorites-container {
+            background-color: #fef4f8;
+            box-shadow: 0 2px 10px rgba(236, 64, 122, 0.2);
+        }
+        
+        body.pink-theme h2 {
+            color: #d81b60;
+            border-bottom-color: #f06292;
+        }
+        body.pink-theme A {
+            color: white;
+        }
+        body.pink-theme .file-link {
+            background-color: #ec407a;
+        }
+        
+        body.pink-theme .file-link:hover {
+            background-color: #d81b60;
+        }
+        
+        body.pink-theme .instructions {
+            background-color: #fce4ec;
+        }
+        
+        body.pink-theme .instructions h3 {
+            color: #c2185b;
+        }
+
+        body.pink-theme .section-title {
+            color: #c2185b;
+            border-bottom-color: #f8bbd0;
+        }
+
+        body.pink-theme .upload-zone {
+            border-color: #ec407a;
+            background-color: #fff5f8;
+        }
+
+        body.pink-theme .upload-zone:hover,
+        body.pink-theme .upload-zone.drag-over {
+            border-color: #d81b60;
+            background-color: #fce4ec;
+        }
+
+        body.pink-theme .upload-status.success {
+            background-color: #fce4ec;
+            color: #880e4f;
+        }
+        
+        .favorites-container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 30px;
+            max-width: 640px;
+            width: 90%;
+            position: relative;
+        }
+
+        .section-title {
+            color: #2c3e50;
+            font-size: 16px;
+            margin: 0 0 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .section-desc {
+            font-size: 13px;
+            color: #666;
+            margin: 0 0 12px;
+            line-height: 1.5;
+        }
+
+        .upload-section,
+        .file-section {
+            margin-bottom: 28px;
+        }
+
+        .upload-zone {
+            border: 2px dashed #3498db;
+            border-radius: 8px;
+            padding: 28px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background-color: #f8fbff;
+        }
+
+        .upload-zone:hover,
+        .upload-zone.drag-over {
+            border-color: #2980b9;
+            background-color: #ebf5fb;
+            transform: translateY(-1px);
+        }
+
+        .upload-icon {
+            font-size: 36px;
+            margin-bottom: 8px;
+        }
+
+        .upload-text {
+            margin: 0 0 6px;
+            color: #2c3e50;
+            font-size: 15px;
+        }
+
+        .upload-hint {
+            margin: 0;
+            font-size: 12px;
+            color: #999;
+        }
+
+        .upload-status {
+            margin-top: 12px;
+            padding: 10px 14px;
+            border-radius: 5px;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .upload-status.success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .upload-status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .uploaded-item {
+            display: flex;
+            align-items: stretch;
+            gap: 8px;
+        }
+
+        .uploaded-link {
+            flex: 1;
+            display: flex !important;
+            flex-direction: column;
+            align-items: flex-start !important;
+            text-align: left !important;
+            gap: 4px;
+        }
+
+        .uploaded-name {
+            font-size: 15px;
+        }
+
+        .uploaded-meta {
+            font-size: 12px;
+            opacity: 0.85;
+        }
+
+        .delete-btn {
+            width: 40px;
+            min-width: 40px;
+            border: none;
+            border-radius: 5px;
+            background-color: #e74c3c;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            line-height: 1;
+        }
+
+        .delete-btn:hover {
+            background-color: #c0392b;
+        }
+
+        .export-tip {
+            margin-top: 12px;
+            font-size: 13px;
+            color: #666;
+            padding-top: 10px;
+            border-top: 1px dashed #ddd;
+        }
+        
+        h2 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #3498db;
+        }
+        
+        .file-selector {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .file-link {
+            background-color: #3498db;
+            color: white;
+            padding: 12px 20px;
+            text-align: center;
+            border-radius: 5px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        
+        .file-link:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .instructions {
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        
+        .instructions h3 {
+            color: #2c3e50;
+            margin-top: 0;
+        }
+        
+        .instructions ul {
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 8px;
+        }
+        
+        /* 主题切换按钮样式 */
+        #theme-container {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 1000;
+        }
+        
+        #pink-theme-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+            color: white;
+            background-color: #ec407a;
+        }
+        
+        #pink-theme-toggle:hover {
+            transform: scale(1.1);
+        }
+        
+        body.pink-theme #pink-theme-toggle {
+            background-color: #d81b60;
+        }
+    </style>
+    
+    <script src="js/favorites-storage.js"></script>
+    <script src="js/favorites-upload.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 检查本地存储中的主题设置
+            const currentTheme = localStorage.getItem('theme');
+            if (currentTheme === 'pink') {
+                document.body.classList.add('pink-theme');
+            }
+            
+            // 粉色主题切换
+            const pinkThemeToggle = document.getElementById('pink-theme-toggle');
+            pinkThemeToggle.addEventListener('click', function() {
+                // 检查当前是否为粉色主题
+                const isPinkTheme = document.body.classList.contains('pink-theme');
+                
+                // 移除所有主题类
+                document.body.classList.remove('pink-theme');
+                
+                if (!isPinkTheme) {
+                    // 如果不是粉色主题，切换到粉色主题
+                    document.body.classList.add('pink-theme');
+                    localStorage.setItem('theme', 'pink');
+                } else {
+                    // 如果是粉色主题，切换到亮色主题
+                    localStorage.setItem('theme', 'light');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

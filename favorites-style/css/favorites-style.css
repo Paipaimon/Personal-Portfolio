@@ -1,0 +1,341 @@
+/* 收藏夹样式表 */
+
+/* 全局样式 */
+body {
+    font-family: 'Microsoft YaHei', 'Segoe UI', Arial, sans-serif;
+    line-height: 1.6;
+    color: #333;
+    background-color: #f5f5f5;
+    margin: 0;
+    padding: 20px;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* 粉色主题 */
+body.pink-theme {
+    background-color: #fff0f5;
+    color: #5a2d5a;
+}
+
+body.pink-theme H1 {
+    color: #d81b60;
+    border-bottom-color: #f06292;
+}
+
+body.pink-theme H3 {
+    color: #c2185b;
+    background-color: #fce4ec;
+}
+
+body.pink-theme H3:hover {
+    background-color: #f8bbd0;
+}
+
+body.pink-theme A {
+    color: #ec407a;
+}
+
+body.pink-theme A:hover {
+    background-color: #fce4ec;
+    color: #c2185b;
+}
+
+body.pink-theme DL {
+    border-left-color: #f48fb1;
+}
+
+body.pink-theme #search-input {
+    border-color: #f48fb1;
+}
+
+body.pink-theme #search-input:focus {
+    border-color: #ec407a;
+    box-shadow: 0 0 8px rgba(236, 64, 122, 0.5);
+}
+
+body.pink-theme .highlight {
+    background-color: #f8bbd0;
+}
+
+body.pink-theme #back-to-top,
+body.pink-theme #theme-toggle {
+    background-color: #ec407a;
+}
+
+body.pink-theme #back-to-top:hover,
+body.pink-theme #theme-toggle:hover {
+    background-color: #d81b60;
+}
+
+body.pink-theme .folder-controls button {
+    background-color: #ec407a;
+    color: white;
+}
+
+body.pink-theme .folder-controls button:hover {
+    background-color: #d81b60;
+}
+
+body.pink-theme #bookmark-stats {
+    background-color: rgba(236, 64, 122, 0.1);
+    border: 1px solid rgba(236, 64, 122, 0.2);
+    color: #5a2d5a;
+}
+
+/* 标题样式 */
+H1 {
+    color: #2c3e50;
+    text-align: center;
+    padding: 10px 0;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #3498db;
+    font-size: 28px;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+}
+
+H3 {
+    color: #2980b9;
+    background-color: #ecf0f1;
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin: 15px 0 10px 0;
+    font-size: 18px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+H3:hover {
+    background-color: #d6eaf8;
+    transform: translateX(2px);
+}
+
+/* 链接样式 */
+A {
+    color: #3498db;
+    text-decoration: none;
+    display: block;
+    padding: 6px 10px;
+    padding-left: 30px;
+    margin: 4px 0;
+    border-radius: 3px;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+A:hover {
+    background-color: #e8f4fc;
+    color: #2980b9;
+    transform: translateX(5px);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+A:active {
+    transform: translateX(7px);
+}
+
+/* 链接波纹效果 */
+A::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 5px;
+    height: 5px;
+    background: rgba(52, 152, 219, 0.3);
+    opacity: 0;
+    border-radius: 100%;
+    transform: scale(1, 1) translate(-50%);
+    transform-origin: 50% 50%;
+}
+
+A:focus:not(:active)::after {
+    animation: ripple 1s ease-out;
+}
+
+@keyframes ripple {
+    0% {
+        transform: scale(0, 0);
+        opacity: 0.5;
+    }
+    20% {
+        transform: scale(25, 25);
+        opacity: 0.3;
+    }
+    100% {
+        opacity: 0;
+        transform: scale(40, 40);
+    }
+}
+
+/* 列表样式 */
+DL {
+    margin-left: 20px;
+    padding-left: 10px;
+    border-left: 1px solid #ddd;
+    transition: all 0.3s ease;
+}
+
+DT {
+    margin: 5px 0;
+}
+
+/* 收藏夹栏特殊样式 */
+DL > p > DT > H3[PERSONAL_TOOLBAR_FOLDER] {
+    background-color: #3498db;
+    color: white;
+    padding: 10px 15px;
+    border-radius: 5px;
+    font-size: 20px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+}
+
+DL > p > DT > H3[PERSONAL_TOOLBAR_FOLDER]:hover {
+    background-color: #2980b9;
+    transform: translateX(2px);
+    box-shadow: 0 3px 7px rgba(0,0,0,0.15);
+}
+
+body.pink-theme DL > p > DT > H3[PERSONAL_TOOLBAR_FOLDER] {
+    background-color: #ec407a;
+}
+
+body.pink-theme DL > p > DT > H3[PERSONAL_TOOLBAR_FOLDER]:hover {
+    background-color: #d81b60;
+}
+
+/* 图标样式优化 */
+A[ICON] {
+    position: relative;
+    padding-left: 30px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+    
+    DL {
+        margin-left: 10px;
+    }
+    
+    H1 {
+        font-size: 24px;
+    }
+    
+    H3 {
+        font-size: 16px;
+    }
+}
+
+/* 折叠/展开功能的样式 */
+.collapsed > DL {
+    display: none;
+}
+
+H3::before {
+    content: '▼';
+    display: inline-block;
+    margin-right: 8px;
+    transition: transform 0.3s;
+    font-size: 0.8em;
+}
+
+.collapsed > H3::before {
+    transform: rotate(-90deg);
+}
+
+/* 搜索框样式 */
+.search-container {
+    text-align: center;
+    margin: 20px 0;
+    position: sticky;
+    top: 10px;
+    z-index: 100;
+}
+
+#search-input {
+    width: 80%;
+    max-width: 500px;
+    padding: 10px 15px;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    font-size: 16px;
+    outline: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+#search-input:focus {
+    border-color: #3498db;
+    box-shadow: 0 0 8px rgba(52, 152, 219, 0.5);
+    width: 85%;
+}
+
+/* 搜索结果高亮 */
+.highlight {
+    background-color: #fff59d;
+    padding: 2px;
+    border-radius: 3px;
+    font-weight: bold;
+}
+
+/* 返回顶部按钮 */
+#back-to-top {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: #3498db;
+    color: white;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 40px;
+    cursor: pointer;
+    display: none;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    z-index: 1000;
+    transition: all 0.3s ease;
+}
+
+#back-to-top:hover {
+    background-color: #2980b9;
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+/* 打印样式优化 */
+@media print {
+    body {
+        background-color: white;
+        padding: 0;
+        font-size: 12pt;
+    }
+    
+    .search-container, #back-to-top {
+        display: none !important;
+    }
+    
+    H1, H3 {
+        page-break-after: avoid;
+    }
+    
+    DL {
+        page-break-inside: avoid;
+    }
+    
+    A {
+        color: #000 !important;
+        text-decoration: none;
+    }
+    
+    A::after {
+        content: " (" attr(HREF) ")";
+        font-size: 0.8em;
+        color: #666;
+    }
+}
