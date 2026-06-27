@@ -45,6 +45,10 @@
 
 ## 快速开始
 
+### 在线访问
+
+ [items.jlands.cn](https://items.jlands.cn)
+
 ### 直接打开
 
 在文件管理器中双击根目录的 [index.html](index.html)，或在命令行中执行：

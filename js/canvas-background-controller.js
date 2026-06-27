@@ -174,7 +174,7 @@ class CanvasBackgroundController {
             this.ctx.stroke();
         }
 
-        // 5. Draw interactive blocks with animation and improved edges
+        // 5. Draw interactive blocks with animation (仿照 canvas.html 的简洁方法)
         // Requirements 4.2: Ensure blocks use correct theme colors
         // Requirements 4.3: Implement click animations
         this.state.erasableBlocks.forEach(block => {
@@ -185,93 +185,52 @@ class CanvasBackgroundController {
             }
             
             const blockColor = blockThemeConfig.canvas.blockColor;
+            this.ctx.fillStyle = blockColor;
 
             let sizeScale = 1;
             let opacity = 1;
 
             // Handle click fade-out animation - Requirements 4.3
             if (block.isClicked) {
-                sizeScale = 1 - block.fadeProgress;
-                opacity = 1 - block.fadeProgress;
+                sizeScale = 1 - block.fadeProgress; // 0% -> 100% 进度时，尺寸从 1 到 0
+                opacity = 1 - block.fadeProgress;   // 0% -> 100% 进度时，透明度从 1 到 0
             }
             
+            // 确保尺寸不会是负数
             sizeScale = Math.max(0, sizeScale);
             opacity = Math.max(0, opacity);
 
             const initialDrawX = block.gridX * gridSize + this.state.offsetX;
             const initialDrawY = block.gridY * gridSize + this.state.offsetY;
 
-            // Calculate scaled size and position (shrink towards center)
+            // 计算实际绘制尺寸和位置 (向中心缩小)
             const scaledSize = gridSize * sizeScale;
             const offset = (gridSize - scaledSize) / 2;
-            const finalDrawX = initialDrawX + offset;
-            const finalDrawY = initialDrawY + offset;
+            const drawX = initialDrawX + offset;
+            const drawY = initialDrawY + offset;
+
+            this.ctx.globalAlpha = opacity;
 
             // Only draw if block is visible on screen
-            if (finalDrawX + scaledSize > 0 && finalDrawX < this.state.width && 
-                finalDrawY + scaledSize > 0 && finalDrawY < this.state.height) {
-                
-                // Set opacity for the entire block drawing
-                this.ctx.globalAlpha = opacity;
-                
-                // Draw the main block with improved edge handling
-                this.ctx.fillStyle = blockColor;
-                
-                // Use Math.floor for pixel-perfect positioning to avoid edge artifacts
-                const pixelPerfectX = Math.floor(finalDrawX);
-                const pixelPerfectY = Math.floor(finalDrawY);
-                const pixelPerfectSize = Math.floor(scaledSize);
-                
-                this.ctx.fillRect(pixelPerfectX, pixelPerfectY, pixelPerfectSize, pixelPerfectSize);
-                
-                // Add enhanced border with better edge handling
-                if (scaledSize > 4) { // Only draw border if block is large enough
-                    this.ctx.strokeStyle = blockColor;
-                    this.ctx.lineWidth = Math.max(1, Math.floor(scaledSize * 0.04)); // Responsive border width
-                    
-                    // Adjust stroke position to avoid edge bleeding
-                    const borderOffset = this.ctx.lineWidth / 2;
-                    this.ctx.strokeRect(
-                        pixelPerfectX + borderOffset, 
-                        pixelPerfectY + borderOffset, 
-                        pixelPerfectSize - this.ctx.lineWidth, 
-                        pixelPerfectSize - this.ctx.lineWidth
-                    );
-                }
-                
-                // Add subtle inner highlight for better visual definition
-                // if (scaledSize > 8) { // Only for larger blocks
-                //     const highlightSize = Math.max(2, Math.floor(scaledSize * 0.1));
-                //     const highlightOffset = Math.floor(scaledSize * 0.1);
-                    
-                //     this.ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-                //     this.ctx.fillRect(
-                //         pixelPerfectX + highlightOffset,
-                //         pixelPerfectY + highlightOffset,
-                //         highlightSize,
-                //         highlightSize
-                //     );
-                // }
+            if (drawX + scaledSize > 0 && drawX < this.state.width && 
+                drawY + scaledSize > 0 && drawY < this.state.height) {
+                // 直接绘制，不使用额外的 Math.floor 处理，避免边缘不平滑
+                this.ctx.fillRect(drawX, drawY, scaledSize, scaledSize);
             }
 
             // Reset global alpha
             this.ctx.globalAlpha = 1.0;
         });
 
-        // 6. Draw hover highlight with improved edges
+        // 6. Draw hover highlight (仿照 canvas.html 的简洁方法)
         if (this.state.hasMouse) {
             const { gridX, gridY } = this.getGridFromScreen(this.state.hoverX, this.state.hoverY);
             const drawX = gridX * gridSize + this.state.offsetX;
             const drawY = gridY * gridSize + this.state.offsetY;
 
-            // Use pixel-perfect positioning for hover highlight
-            const pixelPerfectX = Math.floor(drawX);
-            const pixelPerfectY = Math.floor(drawY);
-            const pixelPerfectSize = Math.floor(gridSize);
-
             this.ctx.fillStyle = canvasTheme.highlightColor;
             this.ctx.globalAlpha = canvasTheme.highlightOpacity;
-            this.ctx.fillRect(pixelPerfectX, pixelPerfectY, pixelPerfectSize, pixelPerfectSize);
+            this.ctx.fillRect(drawX, drawY, gridSize, gridSize);
             this.ctx.globalAlpha = 1.0;
         }
     }
