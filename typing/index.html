@@ -187,13 +187,13 @@
         // 切换文本
         let typeText = list[0].text;
         document.getElementById("fixedText").innerHTML = typeText;
-        document.getElementById("switch").textContent = list[0].id;
+        document.getElementById("switch").textContent = "点击切换: " + list[0].id;
         document.getElementById("switch").onclick = function () {
             let index = list.findIndex(item => item.text === typeText);
             index = (index + 1) % list.length;
             typeText = list[index].text;
             document.getElementById("fixedText").innerHTML = typeText;
-            document.getElementById("switch").textContent = list[index].id;
+            document.getElementById("switch").textContent = "点击切换: " + list[index].id;
             changeShowValue("");
             updateFixedTextColor("");
             clearInterval(timer);
