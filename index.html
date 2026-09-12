@@ -308,6 +308,7 @@
             bottom: 40px;
             font-size: 48px;
             animation: bounce 2s infinite;
+            line-height: 1;
         }
 
         @keyframes bounce {
@@ -434,6 +435,13 @@
             body {
                 padding: 10px;
             }
+
+            .header {
+                min-height: 100svh;
+                min-height: 100dvh;
+                justify-content: center;
+                padding: 72px 0 32px;
+            }
             
             .header h1 {
                 font-size: 2.5rem;
@@ -442,6 +450,23 @@
             .stats {
                 gap: 20px;
                 flex-wrap: wrap;
+                margin-bottom: 0;
+            }
+
+            /* 箭头跟在标题和统计下方，避免贴在屏幕最底 */
+            .scroll-hint {
+                position: static;
+                transform: none;
+                margin-top: 28px;
+                bottom: auto;
+            }
+
+            .scroll-hint:hover {
+                transform: scale(1.1);
+            }
+
+            .scroll-arrow {
+                font-size: 36px;
             }
 
             .project-list {
@@ -478,6 +503,14 @@
             .stats {
                 flex-direction: column;
                 gap: 15px;
+            }
+
+            .scroll-hint {
+                margin-top: 20px;
+            }
+
+            .scroll-arrow {
+                font-size: 32px;
             }
             
             .project-item {

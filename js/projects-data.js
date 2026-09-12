@@ -52,7 +52,7 @@ const PROJECTS_DATA = [
     {
         name: 'Typing',
         title: '打字练习',
-        type: 'Education',
+        type: 'Tool',
         description: '在线打字练习工具，帮助提高打字速度和准确性，支持多种练习模式。',
         tags: ['JavaScript', 'Education', 'UI/UX'],
         icon: '⌨️',
@@ -84,7 +84,27 @@ const PROJECTS_DATA = [
         tags: ['Canvas', 'Game Loop', 'Reaction'],
         icon: '⭕',
         folder: 'fill-ring'
-    }   
+    },
+    {
+        name: 'Color Blind Runner',
+        title: 'Color Blind Runner',
+        type: 'Game',
+        description: '一个基于颜色可见性规则的多人在线生存游戏。玩家只能看到特定颜色的障碍物，需要通过协作和沟通来躲避障碍、争取更长的生存时间。',
+        tags: ['TypeScript', 'WebSocket', 'Canvas', 'Multiplayer'],
+        icon: '🎯',
+        folder: 'blind-line-game',
+        url: 'https://game.jlands.cn'
+    },
+    {
+        name: 'ColorSiege',
+        title: '双色争夺战',
+        type: 'Game',
+        description: '基于 Node.js 的在线双人对战网页游戏。蓝粉双方都可点击任意小球翻转颜色,当 8 个球全部变为同一颜色时该方获胜。',
+        tags: ['Node.js', 'Express', 'Socket.IO', 'JavaScript'],
+        icon: '🔵',
+        folder: 'color-siege-game',
+        url: 'https://game2.jlands.cn'
+    }
 ];
 
 // 导出项目数据供其他模块使用

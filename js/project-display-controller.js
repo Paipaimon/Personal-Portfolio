@@ -27,11 +27,35 @@ class ProjectDisplayController {
     }
 
     /**
+     * 解析项目入口链接
+     * 优先使用 url（外部站点），否则使用本地 folder
+     */
+    getProjectLink(project) {
+        if (project.url) {
+            return {
+                href: project.url,
+                label: '访问网站',
+                external: true
+            };
+        }
+
+        return {
+            href: `./${project.folder}`,
+            label: '查看项目',
+            external: false
+        };
+    }
+
+    /**
      * 创建项目卡片
      */
     createProjectCard(project) {
         const projectDiv = document.createElement('div');
         projectDiv.className = 'project-item';
+        const link = this.getProjectLink(project);
+        const extraAttrs = link.external
+            ? ' target="_blank" rel="noopener noreferrer"'
+            : '';
 
         projectDiv.innerHTML = `
             <div class="project-header">
@@ -45,7 +69,7 @@ class ProjectDisplayController {
             <div class="project-tags">
                 ${project.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
             </div>
-            <a href="./${project.folder}" class="project-link">查看项目</a>
+            <a href="${link.href}" class="project-link"${extraAttrs}>${link.label}</a>
         `;
 
         return projectDiv;
