@@ -11,7 +11,7 @@ const PROJECTS_DATA = [
         description: '这是一个专门用于查询英文缩写和网络用语含义的Web应用工具，采用现代化的界面设计和交互体验。',
         tags: ['Vue.js', 'JavaScript', 'CSS3','API'],
         icon: 'A',
-        folder: 'ABC'
+        folder: 'projects/ABC'
     },
     {
         name: 'ClickHere',
@@ -20,7 +20,7 @@ const PROJECTS_DATA = [
         description: '一个有趣的点击游戏，包含音效和动画效果，测试你的反应速度和准确性。',
         tags: ['HTML5', 'CSS3', 'Audio'],
         icon: '🎮',
-        folder: 'ClickHere'
+        folder: 'projects/ClickHere'
     },
     {
         name: 'PinkBang',
@@ -29,7 +29,7 @@ const PROJECTS_DATA = [
         description: '炫酷的视觉特效展示，使用纯CSS3实现的动画效果和粒子系统。',
         tags: ['CSS3', 'Animation', 'Effects'],
         icon: '💥',
-        folder: 'PinkBang'
+        folder: 'projects/PinkBang'
     },
     {
         name: 'Counter',
@@ -38,7 +38,7 @@ const PROJECTS_DATA = [
         description: '是一个基于 Web 的数字小球判断游戏，玩家需要快速准确地判断屏幕上显示的小球数量。',
         tags: ['Node.js', 'Express', 'JavaScript','MongoDB'],
         icon: '📊',
-        folder: 'counter'
+        folder: 'projects/counter'
     },
     {
         name: 'CPS',
@@ -47,7 +47,7 @@ const PROJECTS_DATA = [
         description: '点击速度测试工具，精确测量每秒点击次数，提供详细的统计数据。',
         tags: ['JavaScript', 'Performance', 'Testing'],
         icon: '⚡',
-        folder: 'cps'
+        folder: 'projects/cps'
     },
     {
         name: 'Typing',
@@ -56,41 +56,50 @@ const PROJECTS_DATA = [
         description: '在线打字练习工具，帮助提高打字速度和准确性，支持多种练习模式。',
         tags: ['JavaScript', 'Education', 'UI/UX'],
         icon: '⌨️',
-        folder: 'typing'
+        folder: 'projects/typing'
     },
     {
         name: 'Error Choice',
         title: '错误选择',
         type: 'Game',
         description: '交互式选择游戏，通过有趣的方式展示不同选择的后果。',
-        tags: ['HTML5', 'JavaScript', 'Interactive'],
+        tags: ['AI','HTML5', 'JavaScript', 'Interactive'],
         icon: '❓',
-        folder: 'error-choice'
+        folder: 'projects/error-choice'
     },
     {
         name: 'Favorites Style',
         title: '收藏夹样式',
         type: 'Tool',
         description: '美化浏览器收藏夹的样式工具，提供现代化的书签管理界面。',
-        tags: ['CSS3', 'Bookmarks', 'Styling'],
+        tags: ['AI','CSS3', 'Bookmarks', 'Styling'],
         icon: '⭐',
-        folder: 'favorites-style'
+        folder: 'projects/favorites-style'
+    },
+    {
+        name: 'Pi Memory',
+        title: '圆周率记忆游戏',
+        type: 'Game',
+        description: '一款挑战记忆力的游戏，玩家需要记住圆周率，通过不断练习记忆更多数字。',
+        tags: ['AI','Memory', 'Game', 'JavaScript'],
+        icon: 'π',
+        folder: 'projects/pi-memory'
     },
     {
         name: 'Expanding Circle Challenge',
         title: '膨胀圆圈挑战',
         type: 'Game',
         description: '一款极高难度的反应力挑战游戏。玩家需要根据中心颜色的切换快速反应按住对应的键来填充圆圈。',
-        tags: ['Canvas', 'Game Loop', 'Reaction'],
+        tags: ['AI','Canvas', 'Game Loop', 'Reaction'],
         icon: '⭕',
-        folder: 'fill-ring'
+        folder: 'projects/fill-ring'
     },
     {
         name: 'Color Blind Runner',
         title: 'Color Blind Runner',
         type: 'Game',
         description: '一个基于颜色可见性规则的多人在线生存游戏。玩家只能看到特定颜色的障碍物，需要通过协作和沟通来躲避障碍、争取更长的生存时间。',
-        tags: ['TypeScript', 'WebSocket', 'Canvas', 'Multiplayer'],
+        tags: ['AI', 'TypeScript', 'WebSocket', 'Canvas', 'Multiplayer'],
         icon: '🎯',
         folder: 'blind-line-game',
         url: 'https://game.jlands.cn'
@@ -100,7 +109,7 @@ const PROJECTS_DATA = [
         title: '双色争夺战',
         type: 'Game',
         description: '基于 Node.js 的在线双人对战网页游戏。蓝粉双方都可点击任意小球翻转颜色,当 8 个球全部变为同一颜色时该方获胜。',
-        tags: ['Node.js', 'Express', 'Socket.IO', 'JavaScript'],
+        tags: ['AI', 'Node.js', 'Express', 'Socket.IO', 'JavaScript', 'Multiplayer'],
         icon: '🔵',
         folder: 'color-siege-game',
         url: 'https://game2.jlands.cn'

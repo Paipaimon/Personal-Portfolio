@@ -48,6 +48,17 @@
       color: #aaa;
       text-align: center;
     }
+    #reset {
+      margin-top: 1rem;
+      padding: 0.6rem 1rem;
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 8px;
+      background: rgba(255,255,255,0.08);
+      color: #ccc;
+      font: inherit;
+      cursor: pointer;
+    }
+    #reset:hover { background: rgba(255,255,255,0.16); color: #fff; }
     .hint { color: #666; }
     .memorized { color: #00ff88; }
     .fade { color: #00ff8866; }
@@ -66,13 +77,14 @@
   <div id="stats">
     已记忆: <span id="count">0</span> 位 | 最高: <span id="best">0</span> 位 | 连对: <span id="streak">0</span>
   </div>
+    <button id="reset" type="button">重置数据</button>
 
   <script>
     const PI = '14159265358979323846264338327950288419716939937510582097494459230781640628620899862803482534211706798214808651328230664709384460955058223172535940812848111745028410270193852110555964462294895493038196';
     
-    let memorized = localStorage.getItem('pi_mem') || '';
-    let best = parseInt(localStorage.getItem('pi_best')) || 0;
-    let streak = 0;
+    let memorized = localStorage.getItem('pi_mem') || '';       //已记忆的数字
+    let best = parseInt(localStorage.getItem('pi_best')) || 0;  //最好成绩
+    let streak = 0;       //连击
     let typing = false;
     let timer;
 
@@ -81,6 +93,7 @@
     const countEl = document.getElementById('count');
     const bestEl = document.getElementById('best');
     const streakEl = document.getElementById('streak');
+    const resetButton = document.getElementById('reset');
 
     // 根据熟练度决定提示数量：连对越多提示越少，最高时提示10
     function getHintCount() {
@@ -154,6 +167,22 @@
         typing = false;
         updateDisplay();
       }, delay);
+    });
+
+    resetButton.addEventListener('click', () => {
+      if (!confirm('确定要重置已记忆内容和最高记录吗？')) return;
+
+      localStorage.removeItem('pi_mem');
+      localStorage.removeItem('pi_best');
+      memorized = '';
+      best = 0;
+      streak = 0;
+      typing = false;
+      clearTimeout(timer);
+      input.value = '';
+      input.classList.remove('wrong');
+      updateDisplay();
+      input.focus();
     });
 
     bestEl.textContent = best;

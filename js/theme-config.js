@@ -39,7 +39,7 @@ const THEME_CONFIG = {
         homepage: {
             bodyBg: 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)',
             textColor: '#f8f9fa',
-            cardBg: 'rgba(40, 40, 40, 0.95)',
+            cardBg: 'rgba(40, 40, 40, 0.15)',
             cardBorder: 'rgba(255, 255, 255, 0.1)',
             accentColor: '#6c757d',
             shadowColor: 'rgba(0, 0, 0, 0.8)', // Enhanced for text shadow
