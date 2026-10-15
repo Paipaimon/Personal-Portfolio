@@ -25,11 +25,14 @@
 | 收藏夹样式 | Tool | [projects/favorites-style/](projects/favorites-style/) | 浏览器书签美化样式工具，支持文件上传与查看 |
 | 膨胀圆圈挑战 | Game | [projects/fill-ring/](projects/fill-ring/) | 高难度反应力 Canvas 游戏 |
 | 圆周率记忆 | Education | [projects/pi-memory/](projects/pi-memory/) | 圆周率背诵练习工具 |
+| 2D 挖矿世界 | Game | [projects/2d-miner-game/](projects/2d-miner-game/) | 像素风 2D 挖矿游戏，挖掘方块、合成镐子、探索地下世界 |
+| 自动贪吃蛇 | Game | [projects/AI-sanke/](projects/AI-sanke/) | AI 自动寻路贪吃蛇，20×20 网格自动运行并记录最高分 |
+| 无限交互网格 | Tool | [projects/grid-painting/](projects/grid-painting/) | 可无限平移缩放的交互网格画布，点击高亮线条与斜对角 |
 
 ### 项目分类
 
-- **游戏类**：ClickHere、Counter、Error-choice、Fill-ring
-- **工具类**：ABC、CPS、Favorites-style
+- **游戏类**：ClickHere、Counter、Error-choice、Fill-ring、2D-miner-game、AI-sanke
+- **工具类**：ABC、CPS、Favorites-style、Grid-painting
 - **教育类**：Pi-memory
 
 旧版本实现保存在 [old/](old/) 目录下，包含早期迭代和实验性功能。
@@ -60,6 +63,7 @@
 
 - ABC 缩写查询：`https://lab.magiconch.com/nbnhhsh/`
 - Counter 游戏后端：`https://api.jlands.cn/counter/`
+- 2D 挖矿世界界面：`https://cdn.tailwindcss.com`（Tailwind CSS CDN）
 
 ## 快速开始
 
@@ -126,8 +130,9 @@ Personal-Portfolio/
 │   ├── favicon.png
 │   └── apple-touch-icon.png
 ├── js/                                 # 核心 JavaScript 模块
-│   ├── theme-config.js                 # 主题配置定义（已弃用）
-│   ├── theme-config-2.js               # 新版六套主题配置
+│   ├── theme-config.js                 # 主题配置定义
+│   ├── theme-config-2.js               # 备用主题配置（待开发）
+│   ├── theme-config-3.js               # 备用主题配置（待开发）
 │   ├── theme-manager.js                # 主题管理与持久化逻辑
 │   ├── theme-system-controller.js      # 主题系统控制器
 │   ├── canvas-background-controller.js # Canvas 背景交互控制
@@ -159,7 +164,13 @@ Personal-Portfolio/
 │   │       ├── favorites-storage.js    # 存储管理
 │   │       ├── favorites-upload.js     # 文件上传
 │   │       └── favorites-viewer.js     # 查看器逻辑
+│   ├── 2d-miner-game/                  # 像素风 2D 挖矿游戏（单文件实现）
+│   │   └── index.html
+│   ├── AI-sanke/                        # AI 自动贪吃蛇（单文件实现）
+│   │   └── index.html
 │   ├── fill-ring/                      # 圆圈游戏
+│   ├── grid-painting/                  # 无限交互网格画布（单文件实现）
+│   │   └── index.html
 │   └── pi-memory/                      # 圆周率记忆
 ├── old/                                # 旧版本备份
 │   ├── index.html                      # 旧版主页
@@ -183,7 +194,7 @@ Personal-Portfolio/
 - **`index.html`**：主页入口，加载所有核心模块
 - **`js/homepage-controller.js`**：主页初始化总控，协调主题、Canvas、项目展示等模块
 - **`js/projects-data.js`**：维护所有子项目的元数据（名称、路径、描述、标签等）
-- **`js/theme-config-2.js`**：定义六套主题的颜色方案
+- **`js/theme-config.js`**：主题的颜色方案
 - **`projects/*/index.html`**：各子项目的独立入口
 
 ### 子项目开发约定
@@ -264,7 +275,7 @@ projects/project-name/
 
 ### 主题开发
 
-修改或添加主题需编辑 `js/theme-config-2.js`：
+修改或添加主题需编辑 `js/theme-config.js`：
 
 ```javascript
 const themes = [
@@ -377,7 +388,7 @@ A: 可能的原因：
 
 ### Q: 如何添加新的主题？
 
-A: 编辑 `js/theme-config-2.js`，在 `themes` 数组中添加新的主题对象，然后更新快捷键绑定。
+A: 编辑 `js/theme-config.js`，在 `themes` 数组中添加新的主题对象，然后更新快捷键绑定。
 
 ### Q: 子项目可以单独运行吗？
 

@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2D 挖矿世界</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 使用一个像素化的字体，模拟游戏氛围 */
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+        
+        body {
+            font-family: 'Press Start 2P', cursive;
+            background-color: #1a1a2e; /* 深蓝色背景 */
+            color: #fff;
+            user-select: none;
+            overflow: auto; /* 允许滚动查看完整的世界 */
+        }
+
+        #game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 1rem;
+            min-width: 320px;
+        }
+
+        #game-canvas {
+            border: 4px solid #0f0a1f;
+            background-color: #5d8aa8; /* 天空蓝 */
+            image-rendering: pixelated; /* 确保像素保持清晰 */
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .ui-panel {
+            background-color: rgba(15, 10, 31, 0.9);
+            border: 2px solid #332d41;
+            padding: 1rem;
+            margin-top: 1rem;
+            border-radius: 0.5rem;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .pixel-button {
+            background-color: #ff652f;
+            color: #1a1a2e;
+            padding: 0.5rem 1rem;
+            margin: 0.25rem;
+            border: 3px solid #0f0a1f;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: background-color 0.1s;
+        }
+
+        .pixel-button:hover {
+            background-color: #f7a83d;
+        }
+
+        .pixel-button:active {
+            background-color: #d14900;
+        }
+
+        .block-icon {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 1px solid #0f0a1f;
+            margin-right: 5px;
+            vertical-align: middle;
+            image-rendering: pixelated;
+        }
+
+        .inventory-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.25rem 0;
+            font-size: 0.7rem;
+            border-bottom: 1px dashed #332d41;
+        }
+
+        /* 移动控制按钮 */
+        #mobile-controls {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            right: 10px;
+            display: none;
+            justify-content: space-between;
+        }
+
+        @media (max-width: 768px) {
+            #mobile-controls {
+                display: flex;
+            }
+            .ui-panel {
+                font-size: 0.75rem;
+            }
+        }
+    </style>
+    <!-- 移除 Firebase 库的引入和初始化脚本 -->
+</head>
+<body>
+
+    <div id="game-container">
+        <h1 class="text-xl sm:text-2xl font-bold mb-4">⛏️ 2D 挖矿世界 💎</h1>
+        <!-- 移除用户 ID 显示元素 -->
+
+        <canvas id="game-canvas" width="640" height="480"></canvas>
+
+        <div id="status-panel" class="ui-panel">
+            <h2 class="text-lg font-semibold mb-2">状态</h2>
+            <p id="player-health" class="text-sm">生命值: 100%</p>
+            <p id="current-tool" class="text-sm">工具: 镐 (0级)</p>
+            <p id="message-box" class="text-sm text-yellow-300 h-6">欢迎来到挖矿世界！</p>
+            <div class="flex flex-wrap justify-center mt-4">
+                <button id="reset-button" class="pixel-button bg-red-600 hover:bg-red-500">🌍 新世界</button>
+            </div>
+        </div>
+
+        <div id="inventory-panel" class="ui-panel mt-4">
+            <h2 class="text-lg font-semibold mb-2">背包</h2>
+            <div id="inventory-list" class="grid grid-cols-2 gap-4">
+                <!-- 库存物品将在这里渲染 -->
+            </div>
+        </div>
+
+        <div id="crafting-panel" class="ui-panel mt-4">
+            <h2 class="text-lg font-semibold mb-2">制作 (当前工具: <span id="crafting-tool-level">0</span> 级)</h2>
+            <div class="flex flex-wrap gap-2 justify-center">
+                <button id="craft-wood-pickaxe" class="pixel-button">制作木镐 (Lvl 1)</button>
+                <button id="craft-stone-pickaxe" class="pixel-button">制作石镐 (Lvl 2)</button>
+                <button id="craft-iron-pickaxe" class="pixel-button">制作铁镐 (Lvl 3)</button>
+            </div>
+            <p class="text-xs text-gray-500 mt-2">提示：挖掘硬度更高的方块需要更高级的工具。**徒手可挖泥土和石头。**</p>
+        </div>
+
+        <!-- 移动控制 (仅在小屏幕上显示) -->
+        <div id="mobile-controls">
+            <button id="control-left" class="pixel-button p-4 text-xl">←</button>
+            <!-- 更改跳跃按钮为 上箭头 -->
+            <button id="control-jump" class="pixel-button p-4 text-xl">↑</button> 
+            <button id="control-right" class="pixel-button p-4 text-xl">→</button>
+        </div>
+    </div>
+
+    <script>
+        // === 游戏配置常量 ===
+        const GRID_SIZE = 32; // 每个方块的像素尺寸
+        const WORLD_WIDTH = 40; // 世界宽度（方块数）
+        const WORLD_HEIGHT = 100; // 世界高度（方块数）
+        const WORLD_VISIBLE_HEIGHT = 15; // 视口可见的高度（方块数）
+        const PLAYER_SIZE = 28; // 玩家尺寸
+        const INITIAL_GROUND_LEVEL = 2; // 地表方块的Y坐标 (例如 y=2 是第一层泥土)
+
+        // 方块类型枚举
+        const BlockType = {
+            AIR: 0,
+            DIRT: 1,
+            STONE: 2,
+            COAL: 3,
+            IRON: 4,
+            DIAMOND: 5,
+            BEDROCK: 6,
+        };
+
+        // 工具等级枚举 (对应挖掘难度)
+        const ToolLevel = {
+            HAND: 0,
+            WOOD: 1,
+            STONE: 2,
+            IRON: 3,
+        };
+
+        // 方块属性：颜色、硬度（所需最小工具等级）、掉落物
+        const BLOCK_PROPERTIES = {
+            [BlockType.AIR]: { color: '#5d8aa8', hardness: 0, drop: null },
+            [BlockType.DIRT]: { color: '#8b4513', hardness: 0, drop: BlockType.DIRT },
+            [BlockType.STONE]: { color: '#808080', hardness: 0, drop: BlockType.STONE }, 
+            [BlockType.COAL]: { color: '#36454F', hardness: 1, drop: BlockType.COAL },
+            [BlockType.IRON]: { color: '#a0a0a0', hardness: 2, drop: BlockType.IRON },
+            [BlockType.DIAMOND]: { color: '#b9f2ff', hardness: 3, drop: BlockType.DIAMOND },
+            [BlockType.BEDROCK]: { color: '#2c2c2c', hardness: 99, drop: null }, // 不可破坏
+        };
+
+        // 掉落物名称映射
+        const ITEM_NAMES = {
+            [BlockType.DIRT]: '泥土',
+            [BlockType.STONE]: '石头',
+            [BlockType.COAL]: '煤炭',
+            [BlockType.IRON]: '铁矿',
+            [BlockType.DIAMOND]: '钻石',
+        };
+
+        // 制作配方: [工具等级]: { 需要的物品: 数量 }
+        const CRAFTING_RECIPES = {
+            [ToolLevel.WOOD]: { [BlockType.DIRT]: 5, [BlockType.STONE]: 5 }, 
+            [ToolLevel.STONE]: { [BlockType.STONE]: 20, [BlockType.COAL]: 5 }, // 石镐 (Lvl 2)
+            [ToolLevel.IRON]: { [BlockType.IRON]: 15, [BlockType.COAL]: 10 }, // 铁镐 (Lvl 3)
+        };
+
+        // === 游戏状态变量 ===
+        let canvas, ctx;
+        let gameGrid = [];
+        let player = {
+            x: WORLD_WIDTH * GRID_SIZE / 2,
+            y: 0,
+            vx: 0,
+            vy: 0,
+            isJumping: false,
+            toolLevel: ToolLevel.HAND,
+            health: 100,
+        };
+        let inventory = {};
+        let cameraY = 0; // 摄像机垂直偏移量
+        let lastTimestamp = 0;
+        let isGameLoopRunning = false;
+        let isLoading = true; // 移除 Firebase 依赖后，直接设置为 true，在 generateWorld 后设为 false
+        let blockDamage = null; // { x, y, time } for damage visual
+        const DAMAGE_TIME = 500; // 挖掘一块方块所需的基础时间 (毫秒)
+
+        // === 游戏初始化与世界生成 ===
+
+        /**
+         * 设置初始摄像机位置，将玩家置于屏幕中心偏上
+         */
+        function setInitialCameraPosition() {
+            // 将玩家Y坐标设置为地表上方
+            player.y = (INITIAL_GROUND_LEVEL * GRID_SIZE) - PLAYER_SIZE;
+
+            const centerScreenY = WORLD_VISIBLE_HEIGHT * GRID_SIZE / 2;
+            
+            // 摄像机初始应以玩家Y坐标为中心，但要限制在世界顶部 (y=0)
+            cameraY = Math.max(0, player.y - centerScreenY);
+            
+            // 确保不会超出世界底部
+            cameraY = Math.min(cameraY, WORLD_HEIGHT * GRID_SIZE - WORLD_VISIBLE_HEIGHT * GRID_SIZE);
+        }
+
+        /**
+         * 生成随机世界地图
+         */
+        function generateWorld() {
+            gameGrid = [];
+            for (let y = 0; y < WORLD_HEIGHT; y++) {
+                const row = [];
+                for (let x = 0; x < WORLD_WIDTH; x++) {
+                    let block = BlockType.AIR;
+
+                    // 地表层
+                    if (y < INITIAL_GROUND_LEVEL) {
+                        block = BlockType.AIR;
+                    } else if (y === INITIAL_GROUND_LEVEL) {
+                        block = BlockType.DIRT;
+                    } else if (y > INITIAL_GROUND_LEVEL && y < 10) {
+                        // 浅层泥土和石头 (现在石头徒手可挖)
+                        block = Math.random() < 0.7 ? BlockType.DIRT : BlockType.STONE;
+                    } else if (y >= 10 && y < 30) {
+                        // 浅层石头和少量煤
+                        if (Math.random() < 0.9) block = BlockType.STONE;
+                        else if (Math.random() < 0.1) block = BlockType.COAL;
+                        else block = BlockType.STONE;
+                    } else if (y >= 30 && y < 60) {
+                        // 中层，更多矿物
+                        if (Math.random() < 0.05) block = BlockType.DIAMOND;
+                        else if (Math.random() < 0.15) block = BlockType.IRON;
+                        else if (Math.random() < 0.3) block = BlockType.COAL;
+                        else block = BlockType.STONE;
+                    } else if (y >= 60 && y < WORLD_HEIGHT - 1) {
+                        // 深层，稀有矿物增多
+                        if (Math.random() < 0.1) block = BlockType.DIAMOND;
+                        else if (Math.random() < 0.25) block = BlockType.IRON;
+                        else if (Math.random() < 0.45) block = BlockType.COAL;
+                        else block = BlockType.STONE;
+                    } else {
+                        // 最底层是基岩
+                        block = BlockType.BEDROCK;
+                    }
+
+                    // 随机空洞 (模拟洞穴)
+                    if (y > 5 && Math.random() < 0.03 && block !== BlockType.BEDROCK) {
+                        block = BlockType.AIR;
+                    }
+
+                    row.push(block);
+                }
+                gameGrid.push(row);
+            }
+
+            // 确保玩家出生点是空气
+            player.x = WORLD_WIDTH * GRID_SIZE / 2;
+            // 玩家出生在第一层泥土上方
+            player.y = (INITIAL_GROUND_LEVEL * GRID_SIZE) - PLAYER_SIZE; 
+
+            // 重置玩家状态
+            player.vx = 0;
+            player.vy = 0;
+            player.isJumping = false;
+            player.toolLevel = ToolLevel.HAND;
+            player.health = 100;
+            inventory = {};
+            blockDamage = null;
+            
+            // 修复: 设置初始摄像机位置
+            setInitialCameraPosition();
+
+            updateUI();
+        }
+
+        /**
+         * 游戏主入口
+         */
+        function initGame() {
+            canvas = document.getElementById('game-canvas');
+            ctx = canvas.getContext('2d');
+            
+            // 确保画布尺寸正确
+            canvas.width = WORLD_WIDTH * GRID_SIZE;
+            canvas.height = WORLD_VISIBLE_HEIGHT * GRID_SIZE;
+
+            // 绑定事件监听器
+            document.addEventListener('keydown', handleKeyDown);
+            document.addEventListener('keyup', handleKeyUp);
+            canvas.addEventListener('click', handleMining);
+
+            // 移动端控制
+            document.getElementById('control-left').addEventListener('touchstart', (e) => { e.preventDefault(); keys.KeyA = true; });
+            document.getElementById('control-left').addEventListener('touchend', (e) => { e.preventDefault(); keys.KeyA = false; });
+            document.getElementById('control-right').addEventListener('touchstart', (e) => { e.preventDefault(); keys.KeyD = true; });
+            document.getElementById('control-right').addEventListener('touchend', (e) => { e.preventDefault(); keys.KeyD = false; });
+            document.getElementById('control-jump').addEventListener('touchstart', (e) => { e.preventDefault(); if (!player.isJumping) keys.KeyW = true; });
+            document.getElementById('control-jump').addEventListener('touchend', (e) => { e.preventDefault(); keys.KeyW = false; });
+
+            // 重置按钮
+            document.getElementById('reset-button').addEventListener('click', () => {
+                window.confirm('确定要生成一个新世界吗？当前进度将丢失。').then(isConfirmed => {
+                    if (isConfirmed) {
+                        generateWorld();
+                    }
+                });
+            });
+
+            document.getElementById('craft-wood-pickaxe').addEventListener('click', () => craftTool(ToolLevel.WOOD));
+            document.getElementById('craft-stone-pickaxe').addEventListener('click', () => craftTool(ToolLevel.STONE));
+            document.getElementById('craft-iron-pickaxe').addEventListener('click', () => craftTool(ToolLevel.IRON));
+
+            // 移除 Firebase 认证检查，直接初始化游戏
+            generateWorld();
+            isLoading = false;
+            startGameLoop();
+        }
+
+        /**
+         * 启动游戏主循环
+         */
+        function startGameLoop() {
+            if (!isGameLoopRunning) {
+                isGameLoopRunning = true;
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
+        // === 游戏循环与渲染 ===
+
+        // 物理常量
+        const GRAVITY = 800;
+        const MOVE_SPEED = 200;
+        const JUMP_VELOCITY = -450;
+        const FRICTION = 0.8;
+
+        /**
+         * 游戏主循环
+         */
+        function gameLoop(timestamp) {
+            if (isLoading) return; // 正在加载时暂停循环
+
+            const deltaTime = (timestamp - lastTimestamp) / 1000; // 时间差（秒）
+            lastTimestamp = timestamp;
+
+            update(deltaTime);
+            render();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        /**
+         * 游戏状态更新
+         */
+        function update(dt) {
+            // 1. 处理输入
+            handleInput();
+
+            // 2. 应用重力
+            player.vy += GRAVITY * dt;
+
+            // 3. 应用摩擦力 (仅在地面上)
+            if (!player.isJumping) {
+                player.vx *= FRICTION;
+            }
+
+            // 4. 计算新位置
+            let newX = player.x + player.vx * dt;
+            let newY = player.y + player.vy * dt;
+
+            // 5. 碰撞检测 (X轴)
+            // 确保玩家保持在世界边界内
+            newX = Math.max(0, Math.min(newX, WORLD_WIDTH * GRID_SIZE - PLAYER_SIZE));
+
+            if (checkCollision(newX, player.y)) {
+                player.vx = 0; // 阻止X轴移动
+                newX = player.x; // 恢复旧X位置
+            }
+            player.x = newX;
+
+            // 6. 碰撞检测 (Y轴)
+            let collisionY = checkCollision(player.x, newY);
+            if (collisionY) {
+                if (player.vy > 0) { // 下落时碰到地面
+                    player.isJumping = false;
+                    player.vy = 0;
+                    // 将玩家Y坐标精确设置到方块上方
+                    const blockY = Math.floor(collisionY.y / GRID_SIZE);
+                    newY = (blockY * GRID_SIZE) - PLAYER_SIZE;
+                } else if (player.vy < 0) { // 上升时碰到头顶
+                    player.vy = 0;
+                    // 将玩家Y坐标精确设置到方块下方
+                    const blockY = Math.floor(collisionY.y / GRID_SIZE) + 1;
+                    newY = blockY * GRID_SIZE;
+                }
+            }
+            player.y = newY;
+            player.isJumping = (player.vy !== 0); // 如果有Y轴速度，则仍在空中
+
+            // 7. 摄像机跟随
+            const playerDrawY = player.y - cameraY;
+            const screenCenterY = canvas.height / 2;
+            
+            // 如果玩家低于屏幕中心
+            if (playerDrawY > screenCenterY + GRID_SIZE * 1) { 
+                cameraY = Math.min(
+                    WORLD_HEIGHT * GRID_SIZE - WORLD_VISIBLE_HEIGHT * GRID_SIZE, 
+                    player.y - screenCenterY + GRID_SIZE * 1 // 玩家在中心下方 1 个方块时开始移动
+                );
+            }
+            // 如果玩家高于屏幕中心
+            else if (playerDrawY < screenCenterY - GRID_SIZE * 2) {
+                cameraY = Math.max(
+                    0, 
+                    player.y - screenCenterY + GRID_SIZE * 2 // 玩家在中心上方 2 个方块时开始移动
+                );
+            }
+
+            // 限制摄像机范围
+            cameraY = Math.max(0, Math.min(cameraY, WORLD_HEIGHT * GRID_SIZE - WORLD_VISIBLE_HEIGHT * GRID_SIZE));
+
+            // 8. 挖掘动画计时器 (如果有)
+            if (blockDamage) {
+                blockDamage.time += dt * 1000;
+                // 如果挖掘时间超过阈值，尝试破坏方块
+                if (blockDamage.time >= DAMAGE_TIME * getMiningSpeedMultiplier(blockDamage.x, blockDamage.y)) {
+                    destroyBlock(blockDamage.x, blockDamage.y);
+                    blockDamage = null; // 重置
+                }
+            }
+
+            updateUI(); // 实时更新 UI
+        }
+
+        /**
+         * 渲染游戏世界
+         */
+        function render() {
+            // 清除画布
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 计算可见的方块范围
+            const startY = Math.floor(cameraY / GRID_SIZE);
+            const endY = Math.min(WORLD_HEIGHT, startY + WORLD_VISIBLE_HEIGHT + 1);
+            
+            // 渲染方块
+            for (let y = startY; y < endY; y++) {
+                for (let x = 0; x < WORLD_WIDTH; x++) {
+                    const blockType = gameGrid[y][x];
+                    const props = BLOCK_PROPERTIES[blockType];
+                    
+                    const drawX = x * GRID_SIZE;
+                    const drawY = y * GRID_SIZE - cameraY;
+
+                    if (props.color) {
+                        ctx.fillStyle = props.color;
+                        ctx.fillRect(drawX, drawY, GRID_SIZE, GRID_SIZE);
+
+                        // 绘制像素网格边框
+                        ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+                        ctx.strokeRect(drawX, drawY, GRID_SIZE, GRID_SIZE);
+                    }
+                }
+            }
+
+            // 渲染挖掘动画
+            if (blockDamage) {
+                const blockX = blockDamage.x;
+                const blockY = blockDamage.y;
+                const timeRatio = Math.min(1, blockDamage.time / (DAMAGE_TIME * getMiningSpeedMultiplier(blockX, blockY)));
+
+                const drawX = blockX * GRID_SIZE;
+                const drawY = blockY * GRID_SIZE - cameraY;
+                
+                // 绘制一个覆盖在方块上的半透明红色层，表示受损
+                ctx.fillStyle = `rgba(255, 0, 0, ${timeRatio * 0.7})`;
+                ctx.fillRect(drawX, drawY, GRID_SIZE, GRID_SIZE);
+                
+                // 绘制挖掘裂痕 (简单模拟)
+                ctx.strokeStyle = 'black';
+                ctx.lineWidth = 2;
+                if (timeRatio > 0.1) ctx.strokeRect(drawX + 1, drawY + 1, GRID_SIZE - 2, GRID_SIZE - 2);
+                if (timeRatio > 0.3) {
+                    ctx.beginPath();
+                    ctx.moveTo(drawX, drawY);
+                    ctx.lineTo(drawX + GRID_SIZE, drawY + GRID_SIZE);
+                    ctx.stroke();
+                }
+                if (timeRatio > 0.6) {
+                    ctx.beginPath();
+                    ctx.moveTo(drawX + GRID_SIZE, drawY);
+                    ctx.lineTo(drawX, drawY + GRID_SIZE);
+                    ctx.stroke();
+                }
+            }
+
+            // 渲染玩家
+            const playerDrawY = player.y - cameraY;
+            ctx.fillStyle = 'white';
+            ctx.fillRect(player.x, playerDrawY, PLAYER_SIZE, PLAYER_SIZE);
+            
+            // 玩家眼睛 (简单动画)
+            ctx.fillStyle = 'black';
+            ctx.fillRect(player.x + PLAYER_SIZE * 0.2, playerDrawY + PLAYER_SIZE * 0.2, PLAYER_SIZE * 0.2, PLAYER_SIZE * 0.2);
+            ctx.fillRect(player.x + PLAYER_SIZE * 0.6, playerDrawY + PLAYER_SIZE * 0.2, PLAYER_SIZE * 0.2, PLAYER_SIZE * 0.2);
+            
+            // 当前工具等级
+            ctx.fillStyle = 'red';
+            ctx.fillRect(player.x + PLAYER_SIZE * 0.6, playerDrawY + PLAYER_SIZE * 0.6, PLAYER_SIZE * 0.4, PLAYER_SIZE * 0.4);
+        }
+
+        // === 碰撞检测与工具逻辑 ===
+
+        /**
+         * AABB 碰撞检测
+         * @param {number} x 玩家测试X坐标
+         * @param {number} y 玩家测试Y坐标
+         * @returns {object | null} 发生碰撞的方块的坐标，否则为 null
+         */
+        function checkCollision(x, y) {
+            const playerLeft = x;
+            const playerRight = x + PLAYER_SIZE;
+            const playerTop = y;
+            const playerBottom = y + PLAYER_SIZE;
+
+            // 找出玩家覆盖的方块范围
+            const minX = Math.floor(playerLeft / GRID_SIZE);
+            const maxX = Math.floor(playerRight / GRID_SIZE);
+            const minY = Math.floor(playerTop / GRID_SIZE);
+            const maxY = Math.floor(playerBottom / GRID_SIZE);
+
+            for (let by = minY; by <= maxY; by++) {
+                for (let bx = minX; bx <= maxX; bx++) {
+                    if (bx < 0 || bx >= WORLD_WIDTH || by < 0 || by >= WORLD_HEIGHT) {
+                        continue;
+                    }
+                    const blockType = gameGrid[by][bx];
+
+                    if (blockType !== BlockType.AIR) {
+                        const blockX = bx * GRID_SIZE;
+                        const blockY = by * GRID_SIZE;
+
+                        // 排除边缘接触
+                        if (playerRight > blockX + 1 && playerLeft < blockX + GRID_SIZE - 1 &&
+                            playerBottom > blockY + 1 && playerTop < blockY + GRID_SIZE - 1) {
+                            
+                            return { x: blockX, y: blockY, bx: bx, by: by }; // 返回碰撞的方块坐标
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
+        /**
+         * 销毁指定方块
+         */
+        function destroyBlock(bx, by) {
+            if (bx < 0 || bx >= WORLD_WIDTH || by < 0 || by >= WORLD_HEIGHT) return;
+
+            const blockType = gameGrid[by][bx];
+            const props = BLOCK_PROPERTIES[blockType];
+
+            if (blockType !== BlockType.AIR) {
+                gameGrid[by][bx] = BlockType.AIR; // 移除方块
+
+                if (props.drop) {
+                    // 添加掉落物到库存
+                    addItemToInventory(props.drop, 1);
+                    showMessage(`获得了 ${ITEM_NAMES[props.drop]}!`, 'yellow');
+                }
+            }
+            updateUI();
+        }
+
+        /**
+         * 计算挖掘速度乘数 (工具越好，乘数越小，挖掘越快)
+         */
+        function getMiningSpeedMultiplier(bx, by) {
+            const blockType = gameGrid[by][bx];
+            const hardness = BLOCK_PROPERTIES[blockType].hardness;
+            const toolLevel = player.toolLevel;
+
+            if (toolLevel >= hardness) {
+                // 工具等级足够，挖掘加速
+                // 注意：由于石头硬度改为 0，木镐 (1级) 挖石头也更快
+                return 1 / (1 + (toolLevel - hardness) * 0.5); 
+            } else if (toolLevel < hardness) {
+                // 工具等级不足，挖掘非常慢
+                return 3.0;
+            }
+            return 1.0; // 默认速度
+        }
+
+        // === 输入处理 ===
+        let keys = {
+            KeyA: false,
+            KeyD: false,
+            KeyW: false, 
+        };
+
+        function handleKeyDown(event) {
+            // 支持 WASD 和方向键兼容
+            if (event.code === 'KeyW' || event.code === 'ArrowUp') { 
+                keys.KeyW = true;
+                event.preventDefault();
+            } else if (event.code === 'KeyA' || event.code === 'ArrowLeft') {
+                keys.KeyA = true;
+                event.preventDefault();
+            } else if (event.code === 'KeyD' || event.code === 'ArrowRight') {
+                keys.KeyD = true;
+                event.preventDefault();
+            }
+        }
+
+        function handleKeyUp(event) {
+            if (event.code === 'KeyW' || event.code === 'ArrowUp') { 
+                keys.KeyW = false;
+            } else if (event.code === 'KeyA' || event.code === 'ArrowLeft') {
+                keys.KeyA = false;
+            } else if (event.code === 'KeyD' || event.code === 'ArrowRight') {
+                keys.KeyD = false;
+            }
+        }
+
+        function handleInput() {
+            player.vx = 0;
+            if (keys.KeyA) {
+                player.vx = -MOVE_SPEED;
+            }
+            if (keys.KeyD) {
+                player.vx = MOVE_SPEED;
+            }
+            // 使用 W 作为跳跃键
+            if (keys.KeyW && !player.isJumping) {
+                player.vy = JUMP_VELOCITY;
+                player.isJumping = true;
+                keys.KeyW = false; // 消耗跳跃输入
+            }
+        }
+
+        /**
+         * 处理鼠标/触摸点击挖掘
+         */
+        function handleMining(event) {
+            const rect = canvas.getBoundingClientRect();
+            const clickX = event.clientX - rect.left;
+            const clickY = event.clientY - rect.top;
+
+            // 将屏幕坐标转换为世界坐标
+            const worldY = clickY + cameraY;
+
+            const bx = Math.floor(clickX / GRID_SIZE);
+            const by = Math.floor(worldY / GRID_SIZE);
+
+            if (bx < 0 || bx >= WORLD_WIDTH || by < 0 || by >= WORLD_HEIGHT) return;
+
+            const blockType = gameGrid[by][bx];
+            const props = BLOCK_PROPERTIES[blockType];
+
+            // 1. 检查是否是空气或不可破坏的基岩
+            if (blockType === BlockType.AIR || blockType === BlockType.BEDROCK) {
+                blockDamage = null;
+                if (blockType === BlockType.BEDROCK) showMessage("基岩无法被破坏。", 'red');
+                return;
+            }
+
+            // 2. 检查玩家是否足够近 (相邻或对角)
+            const playerBx = Math.floor((player.x + PLAYER_SIZE / 2) / GRID_SIZE);
+            const playerBy = Math.floor((player.y + PLAYER_SIZE / 2) / GRID_SIZE);
+            const distanceX = Math.abs(playerBx - bx);
+            const distanceY = Math.abs(playerBy - by);
+
+            if (distanceX > 1 || distanceY > 1) {
+                blockDamage = null;
+                showMessage("离方块太远了，走近一点。", 'red');
+                return;
+            }
+
+            // 3. 检查工具等级
+            if (player.toolLevel < props.hardness) {
+                 // 只有在工具等级小于方块硬度时才阻止挖掘 (例如挖铁矿需要2级，但玩家只有1级)
+                 blockDamage = null;
+                 showMessage(`需要 ${props.hardness} 级工具才能有效挖掘 ${ITEM_NAMES[blockType]}。`, 'red');
+                 return;
+            }
+
+            // 4. 开始或继续挖掘
+            if (!blockDamage || blockDamage.x !== bx || blockDamage.y !== by) {
+                // 开始新的挖掘
+                blockDamage = { x: bx, y: by, time: 0 };
+            }
+        }
+
+        // === 库存与制作 ===
+
+        /**
+         * 添加物品到库存
+         */
+        function addItemToInventory(itemType, count) {
+            const itemName = ITEM_NAMES[itemType];
+            inventory[itemName] = (inventory[itemName] || 0) + count;
+            updateUI();
+        }
+
+        /**
+         * 尝试制作工具
+         */
+        function craftTool(targetLevel) {
+            if (targetLevel <= player.toolLevel) {
+                showMessage("你已经拥有同级或更高级的工具。", 'red');
+                return;
+            }
+
+            const recipe = CRAFTING_RECIPES[targetLevel];
+            let canCraft = true;
+
+            // 检查是否有足够材料
+            for (const item in recipe) {
+                const required = recipe[item];
+                // 制作配方中的 item 是 BlockType 的数字，需要转换为 ITEM_NAMES 字符串
+                const itemName = ITEM_NAMES[item]; 
+                const available = inventory[itemName] || 0;
+                if (available < required) {
+                    canCraft = false;
+                    showMessage(`缺少材料: ${itemName} x${required - available}`, 'red');
+                    return;
+                }
+            }
+
+            // 消耗材料并制作
+            if (canCraft) {
+                for (const item in recipe) {
+                    const required = recipe[item];
+                    const itemName = ITEM_NAMES[item];
+                    inventory[itemName] -= required;
+                }
+                player.toolLevel = targetLevel;
+                showMessage(`制作成功！你的工具升级到 ${targetLevel} 级。`, 'lime');
+                updateUI();
+            }
+        }
+
+        // === UI 更新 ===
+
+        /**
+         * 显示临时消息
+         */
+        function showMessage(text, color = 'white') {
+            const msgBox = document.getElementById('message-box');
+            msgBox.textContent = text;
+            msgBox.style.color = color;
+            clearTimeout(window.messageTimeout);
+            window.messageTimeout = setTimeout(() => {
+                msgBox.textContent = "挖矿世界...";
+                msgBox.style.color = 'yellow';
+            }, 3000);
+        }
+
+        /**
+         * 更新所有 UI 元素
+         */
+        function updateUI() {
+            // 状态面板
+            document.getElementById('player-health').textContent = `生命值: ${player.health}%`;
+            document.getElementById('current-tool').textContent = `工具: 镐 (${player.toolLevel} 级)`;
+            document.getElementById('crafting-tool-level').textContent = player.toolLevel;
+
+            // 库存面板
+            const inventoryList = document.getElementById('inventory-list');
+            inventoryList.innerHTML = ''; // 清空列表
+
+            for (const itemName in inventory) {
+                const count = inventory[itemName];
+                if (count > 0) {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'inventory-item';
+                    
+                    // 查找对应的 BlockType 以获取颜色
+                    const itemType = Object.keys(ITEM_NAMES).find(key => ITEM_NAMES[key] === itemName);
+                    const blockProps = BLOCK_PROPERTIES[itemType] || { color: '#ffffff' };
+
+                    itemDiv.innerHTML = `
+                        <div>
+                            <span class="block-icon" style="background-color: ${blockProps.color};"></span>
+                            ${itemName}
+                        </div>
+                        <span>x${count}</span>
+                    `;
+                    inventoryList.appendChild(itemDiv);
+                }
+            }
+        }
+
+        // 页面加载完成后启动游戏
+        // IMPORTANT: Use window.confirm instead of confirm for compatibility reasons inside the immersive
+        window.confirm = (message) => {
+            const modal = document.createElement('div');
+            modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 1000;';
+            modal.innerHTML = `
+                <div style="background: #1a1a2e; padding: 20px; border: 3px solid #ff652f; border-radius: 8px; max-width: 80%; text-align: center;">
+                    <p style="margin-bottom: 20px;">${message}</p>
+                    <button id="modal-ok" style="background: #ff652f; color: #1a1a2e; padding: 10px 20px; border: none; border-radius: 4px; margin-right: 10px; cursor: pointer;">确定</button>
+                    <button id="modal-cancel" style="background: #332d41; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer;">取消</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+
+            return new Promise((resolve) => {
+                document.getElementById('modal-ok').onclick = () => {
+                    document.body.removeChild(modal);
+                    resolve(true);
+                };
+                document.getElementById('modal-cancel').onclick = () => {
+                    document.body.removeChild(modal);
+                    resolve(false);
+                };
+            });
+        };
+
+        window.onload = initGame;
+    </script>
+</body>
+</html>

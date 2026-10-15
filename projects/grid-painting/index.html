@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>无线交互网格</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: radial-gradient(circle at center, #1e1e2f 0%, #050508 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            touch-action: none; /* 防止移动端默认滚动 */
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        #ui-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(15, 15, 20, 0.85);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 12px;
+            color: #fff;
+            pointer-events: auto;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            z-index: 10;
+        }
+
+        h1 {
+            margin: 0 0 10px 0;
+            font-size: 1.2rem;
+            color: #00f3ff;
+            text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+        }
+
+        p {
+            margin: 5px 0;
+            font-size: 0.9rem;
+            color: #aaa;
+        }
+
+        .controls {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.85rem;
+        }
+
+        button:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: #00f3ff;
+            color: #00f3ff;
+        }
+
+        .color-picker {
+            display: flex;
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        .color-btn {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .color-btn:hover {
+            transform: scale(1.2);
+        }
+
+        .color-btn.active {
+            border-color: white;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui-panel">
+        <h1>无限交互网格</h1>
+        <p>🖱️ <b>左键点击：</b> 高亮线条/斜对角</p>
+        <p>🖐️ <b>按住拖动：</b> 平移无限画布</p>
+        <p>🔍 <b>鼠标滚轮：</b> 放大 / 缩小</p>
+        
+        <div class="color-picker">
+            <div class="color-btn active" style="background-color: #00f3ff;" data-color="#00f3ff"></div>
+            <div class="color-btn" style="background-color: #ff00ea;" data-color="#ff00ea"></div>
+            <div class="color-btn" style="background-color: #00ff66;" data-color="#00ff66"></div>
+            <div class="color-btn" style="background-color: #ff9d00;" data-color="#ff9d00"></div>
+        </div>
+
+        <div class="controls">
+            <button id="clearBtn">清除所有高亮</button>
+        </div>
+    </div>
+
+    <canvas id="gridCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gridCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // 状态变量
+        let width = window.innerWidth;
+        let height = window.innerHeight;
+        let offsetX = width / 2; // 初始偏移量，使中心在屏幕中间
+        let offsetY = height / 2;
+        let cellSize = 80;       // 网格基准大小
+        let currentColor = '#00f3ff';
+        
+        // 存储已高亮的线段集合
+        // 格式: "Type_X_Y", 比如 "H_0_0" (水平), "V_0_0" (垂直), "D1_0_0" (主对角), "D2_0_0" (副对角)
+        let highlighted = new Set();
+        let highlightedColors = new Map(); // 记录每条线的颜色
+        
+        // 交互状态
+        let hoveredId = null;
+        let isDragging = false;
+        let startDragX = 0;
+        let startDragY = 0;
+        let dragMoved = false; // 用于区分点击和拖拽
+        
+        // 调整画布分辨率以适配视网膜屏幕
+        function resize() {
+            const dpr = window.devicePixelRatio || 1;
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width * dpr;
+            canvas.height = height * dpr;
+            ctx.scale(dpr, dpr);
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // 颜色选择器逻辑
+        document.querySelectorAll('.color-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                currentColor = e.target.getAttribute('data-color');
+            });
+        });
+
+        // 清除按钮逻辑
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            highlighted.clear();
+            highlightedColors.clear();
+        });
+
+        // 核心数学转换：获取距离鼠标最近的线段 ID
+        function getLineIdAt(x, y) {
+            // 将屏幕坐标转换为世界坐标
+            let wx = x - offsetX;
+            let wy = y - offsetY;
+
+            // 获取所属网格坐标
+            let cx = Math.floor(wx / cellSize);
+            let cy = Math.floor(wy / cellSize);
+
+            // 获取网格内的局部坐标 (0 到 cellSize)
+            let lx = wx - cx * cellSize;
+            let ly = wy - cy * cellSize;
+
+            let threshold = 8; // 吸附阈值（像素）
+            let minDist = Infinity;
+            let bestId = null;
+            let half = cellSize / 2;
+
+            // 计算到八条可能线段的距离
+            let dTop = ly;                                              // H: 顶部水平线
+            let dBottom = cellSize - ly;                                // H: 底部水平线
+            let dLeft = lx;                                             // V: 左侧垂直线
+            let dRight = cellSize - lx;                                 // V: 右侧垂直线
+            let dD1 = Math.abs(lx - ly) / Math.SQRT2;                   // D1: 左上到右下对角线
+            let dD2 = Math.abs(lx + ly - cellSize) / Math.SQRT2;        // D2: 左下到右上对角线
+            let dHC = Math.abs(ly - half);                              // HC: 水平中心线
+            let dVC = Math.abs(lx - half);                              // VC: 垂直中心线
+
+            // 查找距离最小且在阈值内的线段，并根据一半的位置切分为独立线段
+            if (dTop < threshold && dTop < minDist)       { minDist = dTop;    bestId = lx < half ? `HL_${cx}_${cy}` : `HR_${cx}_${cy}`; }
+            if (dBottom < threshold && dBottom < minDist) { minDist = dBottom; bestId = lx < half ? `HL_${cx}_${cy+1}` : `HR_${cx}_${cy+1}`; }
+            if (dLeft < threshold && dLeft < minDist)     { minDist = dLeft;   bestId = ly < half ? `VT_${cx}_${cy}` : `VB_${cx}_${cy}`; }
+            if (dRight < threshold && dRight < minDist)   { minDist = dRight;  bestId = ly < half ? `VT_${cx+1}_${cy}` : `VB_${cx+1}_${cy}`; }
+            
+            if (dD1 < threshold && dD1 < minDist)         { minDist = dD1;     bestId = lx < half ? `D1L_${cx}_${cy}` : `D1R_${cx}_${cy}`; }
+            if (dD2 < threshold && dD2 < minDist)         { minDist = dD2;     bestId = lx < half ? `D2L_${cx}_${cy}` : `D2R_${cx}_${cy}`; }
+            if (dHC < threshold && dHC < minDist)         { minDist = dHC;     bestId = lx < half ? `HCL_${cx}_${cy}` : `HCR_${cx}_${cy}`; }
+            if (dVC < threshold && dVC < minDist)         { minDist = dVC;     bestId = ly < half ? `VCT_${cx}_${cy}` : `VCB_${cx}_${cy}`; }
+
+            return bestId;
+        }
+
+        // 鼠标按下：准备拖拽或点击
+        canvas.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            dragMoved = false;
+            startDragX = e.clientX - offsetX;
+            startDragY = e.clientY - offsetY;
+            canvas.style.cursor = 'grabbing';
+        });
+
+        // 鼠标移动：更新拖拽位移或悬停状态
+        window.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                let dx = e.clientX - startDragX - offsetX;
+                let dy = e.clientY - startDragY - offsetY;
+                
+                // 判断是否发生了实际的拖拽移动
+                if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+                    dragMoved = true;
+                }
+                
+                offsetX = e.clientX - startDragX;
+                offsetY = e.clientY - startDragY;
+                hoveredId = null; // 拖拽时不显示悬停
+            } else {
+                // 更新悬停线段
+                hoveredId = getLineIdAt(e.clientX, e.clientY);
+                if (hoveredId) {
+                    canvas.style.cursor = 'pointer';
+                } else {
+                    canvas.style.cursor = 'default';
+                }
+            }
+        });
+
+        // 鼠标抬起：判定是拖拽结束还是点击
+        window.addEventListener('mouseup', (e) => {
+            isDragging = false;
+            canvas.style.cursor = hoveredId ? 'pointer' : 'default';
+            
+            if (!dragMoved) {
+                // 如果没有拖拽，则触发点击事件
+                let clickedId = getLineIdAt(e.clientX, e.clientY);
+                if (clickedId) {
+                    if (highlighted.has(clickedId) && highlightedColors.get(clickedId) === currentColor) {
+                        // 如果已经被当前颜色高亮，则取消高亮
+                        highlighted.delete(clickedId);
+                        highlightedColors.delete(clickedId);
+                    } else {
+                        // 否则添加高亮或更改颜色
+                        highlighted.add(clickedId);
+                        highlightedColors.set(clickedId, currentColor);
+                    }
+                }
+            }
+        });
+
+        // 鼠标滚轮缩放
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            
+            // 记录鼠标在世界中的固定锚点坐标
+            let mouseX = e.clientX;
+            let mouseY = e.clientY;
+            let wx = (mouseX - offsetX) / cellSize;
+            let wy = (mouseY - offsetY) / cellSize;
+
+            // 根据滚轮方向调整缩放
+            let zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+            cellSize *= zoomFactor;
+            
+            // 限制缩放范围
+            cellSize = Math.max(30, Math.min(250, cellSize));
+
+            // 更新偏移量，保持鼠标指向的世界坐标不动
+            offsetX = mouseX - wx * cellSize;
+            offsetY = mouseY - wy * cellSize;
+            
+            hoveredId = getLineIdAt(mouseX, mouseY); // 重新计算悬停
+        }, { passive: false });
+
+
+        // 触摸屏支持
+        let lastTouchX = 0;
+        let lastTouchY = 0;
+        canvas.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1) {
+                isDragging = true;
+                dragMoved = false;
+                lastTouchX = e.touches[0].clientX;
+                lastTouchY = e.touches[0].clientY;
+                startDragX = lastTouchX - offsetX;
+                startDragY = lastTouchY - offsetY;
+            }
+        });
+        canvas.addEventListener('touchmove', (e) => {
+            if (isDragging && e.touches.length === 1) {
+                let currentX = e.touches[0].clientX;
+                let currentY = e.touches[0].clientY;
+                
+                if (Math.abs(currentX - lastTouchX) > 3 || Math.abs(currentY - lastTouchY) > 3) {
+                    dragMoved = true;
+                }
+                
+                offsetX = currentX - startDragX;
+                offsetY = currentY - startDragY;
+            }
+        });
+        canvas.addEventListener('touchend', (e) => {
+            if (isDragging && !dragMoved && e.changedTouches.length === 1) {
+                let clickedId = getLineIdAt(lastTouchX, lastTouchY);
+                if (clickedId) {
+                    if (highlighted.has(clickedId)) {
+                        highlighted.delete(clickedId);
+                    } else {
+                        highlighted.add(clickedId);
+                        highlightedColors.set(clickedId, currentColor);
+                    }
+                }
+            }
+            isDragging = false;
+        });
+
+
+        // 绘制指定 ID 的线段
+        function drawLineById(id, isHover = false) {
+            let parts = id.split('_');
+            let type = parts[0];
+            let cx = parseInt(parts[1]);
+            let cy = parseInt(parts[2]);
+
+            // 根据坐标计算屏幕上的绝对位置
+            let x = cx * cellSize + offsetX;
+            let y = cy * cellSize + offsetY;
+            let half = cellSize / 2;
+
+            // 决定绘制样式
+            if (isHover) {
+                ctx.strokeStyle = currentColor;
+                ctx.lineWidth = 2;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = currentColor;
+                ctx.globalAlpha = 0.5; // 悬停半透明
+            } else {
+                let color = highlightedColors.get(id) || '#00f3ff';
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 3;
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = color;
+                ctx.globalAlpha = 1.0;
+            }
+
+            ctx.beginPath();
+            switch (type) {
+                case 'HL':  ctx.moveTo(x, y); ctx.lineTo(x + half, y); break;
+                case 'HR':  ctx.moveTo(x + half, y); ctx.lineTo(x + cellSize, y); break;
+                case 'VT':  ctx.moveTo(x, y); ctx.lineTo(x, y + half); break;
+                case 'VB':  ctx.moveTo(x, y + half); ctx.lineTo(x, y + cellSize); break;
+                case 'D1L': ctx.moveTo(x, y); ctx.lineTo(x + half, y + half); break;
+                case 'D1R': ctx.moveTo(x + half, y + half); ctx.lineTo(x + cellSize, y + cellSize); break;
+                case 'D2L': ctx.moveTo(x, y + cellSize); ctx.lineTo(x + half, y + half); break;
+                case 'D2R': ctx.moveTo(x + half, y + half); ctx.lineTo(x + cellSize, y); break;
+                case 'HCL': ctx.moveTo(x, y + half); ctx.lineTo(x + half, y + half); break;
+                case 'HCR': ctx.moveTo(x + half, y + half); ctx.lineTo(x + cellSize, y + half); break;
+                case 'VCT': ctx.moveTo(x + half, y); ctx.lineTo(x + half, y + half); break;
+                case 'VCB': ctx.moveTo(x + half, y + half); ctx.lineTo(x + half, y + cellSize); break;
+            }
+            ctx.stroke();
+            
+            // 恢复透明度
+            ctx.globalAlpha = 1.0;
+            ctx.shadowBlur = 0;
+        }
+
+        // 主渲染循环
+        function draw() {
+            ctx.clearRect(0, 0, width, height); // 清除画布
+
+            // 1. 计算视野内可见的网格坐标范围
+            let startCx = Math.floor(-offsetX / cellSize) - 1;
+            let startCy = Math.floor(-offsetY / cellSize) - 1;
+            let endCx = Math.floor((width - offsetX) / cellSize) + 1;
+            let endCy = Math.floor((height - offsetY) / cellSize) + 1;
+
+            // 2. 绘制底层极简网格（水平线和垂直线）
+            ctx.beginPath();
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+            ctx.lineWidth = 1;
+            // 水平线
+            for (let cy = startCy; cy <= endCy; cy++) {
+                let y = cy * cellSize + offsetY;
+                ctx.moveTo(0, y);
+                ctx.lineTo(width, y);
+            }
+            // 垂直线
+            for (let cx = startCx; cx <= endCx; cx++) {
+                let x = cx * cellSize + offsetX;
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, height);
+            }
+            ctx.stroke();
+
+            // 3. 绘制底层的斜对角线（更淡一些，作为指引）
+            ctx.beginPath();
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+            for (let cx = startCx; cx <= endCx; cx++) {
+                for (let cy = startCy; cy <= endCy; cy++) {
+                    let x = cx * cellSize + offsetX;
+                    let y = cy * cellSize + offsetY;
+                    let half = cellSize / 2;
+                    // D1
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(x + cellSize, y + cellSize);
+                    // D2
+                    ctx.moveTo(x, y + cellSize);
+                    ctx.lineTo(x + cellSize, y);
+                    // HC (水平十字)
+                    ctx.moveTo(x, y + half);
+                    ctx.lineTo(x + cellSize, y + half);
+                    // VC (垂直十字)
+                    ctx.moveTo(x + half, y);
+                    ctx.lineTo(x + half, y + cellSize);
+                }
+            }
+            ctx.stroke();
+
+            // 4. 绘制被激活/高亮的线段
+            // 采用线帽圆角让发光更好看
+            ctx.lineCap = 'round';
+            highlighted.forEach(id => {
+                drawLineById(id, false);
+            });
+
+            // 5. 绘制悬停预瞄线
+            if (hoveredId && !highlighted.has(hoveredId)) {
+                drawLineById(hoveredId, true);
+            }
+
+            requestAnimationFrame(draw);
+        }
+
+        // 启动渲染
+        draw();
+    </script>
+</body>
+</html>

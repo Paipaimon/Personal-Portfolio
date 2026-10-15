@@ -113,6 +113,33 @@ const PROJECTS_DATA = [
         icon: '🔵',
         folder: 'color-siege-game',
         url: 'https://game2.jlands.cn'
+    },
+    {
+        name: '2D Miner Game',
+        title: '2D 挖矿世界',
+        type: 'Game',
+        description: '像素风 2D 挖矿游戏，挖掘方块、合成镐子、探索地下世界。',
+        tags: ['AI', 'Canvas', 'Game', 'Pixel'],
+        icon: '⛏️',
+        folder: 'projects/2d-miner-game'
+    },
+    {
+        name: 'AI Snake',
+        title: '自动贪吃蛇',
+        type: 'Game',
+        description: 'AI 自动寻路贪吃蛇，20×20 网格自动运行并记录最高分。',
+        tags: ['AI', 'Canvas', 'JavaScript', 'Algorithm'],
+        icon: '🐍',
+        folder: 'projects/AI-sanke'
+    },
+    {
+        name: 'Infinite Grid',
+        title: '无限交互网格',
+        type: 'Tool',
+        description: '可无限平移缩放的交互网格画布，点击高亮线条与斜对角。',
+        tags: ['AI','Canvas', 'Interactive', 'Infinite Grid'],
+        icon: '🔲',
+        folder: 'projects/grid-painting'
     }
 ];
 
