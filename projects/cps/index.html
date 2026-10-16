@@ -1,987 +1,499 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
-    <meta name="viewport" content="width=device-width; initial-scale=1.0; maximum-scale=1.0">
     <meta charset="utf-8">
-    <title>🚀 CPS测试器 - 点击速度挑战</title>
-    <script src="../js/site-meta.js"></script>
-    <script>applySiteMeta();</script>
-    <style type="text/css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CPS Test</title>
+    <style>
+        :root {
+            --bg: #f6f6f7;
+            --surface: #ffffff;
+            --area: #f2f3f5;
+            --text: #1a1a1a;
+            --muted: #8a8f98;
+            --line: #e6e8eb;
+            --accent: #2563eb;
+            --accent-soft: #eaf1fe;
+        }
+
         * {
-            margin: 0;
-            padding: 0;
             box-sizing: border-box;
         }
 
         body {
-            user-select: none;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #fff;
+            margin: 0;
+            padding: 32px 20px;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            overflow-x: hidden;
-        }
-
-        .header {
+            gap: 28px;
+            background: var(--bg);
+            color: var(--text);
+            font-family: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+            font-size: 16px;
             text-align: center;
-            margin-bottom: 30px;
-            animation: fadeInDown 1s ease-out;
+            -webkit-font-smoothing: antialiased;
+            user-select: none;
+            -webkit-user-select: none;
         }
 
-        .main-title {
-            font-size: 3.5rem;
-            font-weight: bold;
-            background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4);
-            background-size: 400% 400%;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            animation: gradientShift 3s ease-in-out infinite;
-            margin-bottom: 10px;
-        }
-
-        .subtitle {
-            font-size: 1.2rem;
-            opacity: 0.9;
-            margin-bottom: 20px;
-        }
-
-        .stats-panel {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 15px;
-            padding: 15px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            min-width: 200px;
-            transition: all 0.3s ease;
-        }
-
-        .stats-title {
-            font-weight: bold;
-            margin-bottom: 10px;
-            text-align: center;
-        }
-
-        .stat-item {
-            display: flex;
-            justify-content: space-between;
-            margin: 5px 0;
-            font-size: 0.9rem;
-        }
-
+        /* ---------- 时间选择 ---------- */
         #switch_time {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 25px;
-            margin-bottom: 30px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            animation: fadeInUp 1s ease-out 0.3s both;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+            transition: opacity .25s ease;
+        }
+
+        #switch_time.hidden {
+            opacity: .35;
+            pointer-events: none;
         }
 
         #show_time_title {
-            font-size: 1.3rem;
-            margin-bottom: 20px;
-            font-weight: 600;
+            font-size: 15px;
+            color: var(--muted);
+            letter-spacing: .02em;
         }
 
         #set_time {
-            color: #4ecdc4;
-            font-weight: bold;
-            font-size: 1.5rem;
-        }
-
-        .time-options {
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-
-        .time-option {
-            position: relative;
-        }
-
-        .time-option input[type="radio"] {
-            position: absolute;
-            opacity: 0;
-            cursor: pointer;
-        }
-
-        .time-option label {
-            display: block;
-            padding: 12px 24px;
-            background: rgba(255, 255, 255, 0.2);
-            border: 2px solid transparent;
-            border-radius: 25px;
-            cursor: pointer;
-            transition: all 0.3s ease;
+            color: var(--text);
             font-weight: 600;
-            min-width: 80px;
         }
 
-        .time-option label:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        .segmented {
+            display: inline-flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 4px;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 999px;
         }
 
-        .time-option input[type="radio"]:checked + label {
-            background: linear-gradient(45deg, #4ecdc4, #44a08d);
-            border-color: #fff;
-            transform: scale(1.05);
-            box-shadow: 0 5px 20px rgba(78, 205, 196, 0.4);
+        #switch_time input[type="radio"] {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            opacity: 0;
+            pointer-events: none;
         }
 
+        #switch_time label {
+            padding: 8px 18px;
+            border-radius: 999px;
+            color: var(--muted);
+            font-size: 14px;
+            font-variant-numeric: tabular-nums;
+            cursor: pointer;
+            transition: background-color .2s ease, color .2s ease;
+        }
+
+        #switch_time label:hover {
+            color: var(--text);
+        }
+
+        #switch_time input[type="radio"]:checked + label {
+            background: var(--accent-soft);
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        /* ---------- 点击区 ---------- */
         #box {
-            width: min(600px, 90vw);
-            height: min(400px, 60vh);
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            border-radius: 25px;
+            position: relative;
+            width: min(560px, 100%);
+            min-height: 52vh;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
+            gap: 6px;
+            padding: 40px 24px;
+            background: var(--area);
+            border: 1px solid var(--line);
+            border-radius: 20px;
             cursor: pointer;
-            transition: all 0.3s ease;
-            border: 3px solid rgba(255, 255, 255, 0.3);
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
-            position: relative;
             overflow: hidden;
-            animation: fadeInUp 1s ease-out 0.6s both;
-        }
-
-        #box::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-            transform: rotate(45deg);
-            transition: all 0.6s ease;
-            opacity: 0;
+            touch-action: manipulation;
+            transition: background-color .2s ease, transform .08s ease;
         }
 
         #box:hover {
-            transform: translateY(-5px) scale(1.02);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-            border-color: rgba(255, 255, 255, 0.5);
+            background: #eceef1;
         }
 
-        #box:hover::before {
-            opacity: 1;
-            animation: shine 0.6s ease-in-out;
+        #box:not(.fullscreen):active,
+        #box:not(.fullscreen).tap {
+            transform: scale(.995);
+            background: #e8eaee;
         }
 
-        #box:active {
-            transform: translateY(-2px) scale(0.98);
+        #box.running {
+            background: var(--surface);
+            border-color: #dfe3e8;
         }
 
-        .click-area {
+        /* 测试进行中：点击区铺满屏幕 */
+        #box.fullscreen {
+            position: fixed;
+            inset: 0;
+            z-index: 10;
             width: 100%;
             height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            position: relative;
+            min-height: 100%;
+            padding: 0;
+            border: none;
+            border-radius: 0;
+            animation: expand .18s ease-out;
+        }
+
+        @keyframes expand {
+            from { transform: scale(.97); opacity: .5; }
+            to   { transform: scale(1); opacity: 1; }
+        }
+
+        #box.fullscreen #number {
+            font-size: clamp(88px, 22vw, 180px);
+        }
+
+        #box.fullscreen #show_time {
+            font-size: 20px;
+        }
+
+        #box.fullscreen #title {
+            opacity: 0;
+        }
+
+        body.locked {
+            overflow: hidden;
+        }
+
+        body.locked footer {
+            visibility: hidden;
+        }
+
+        #progress {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 3px;
+            width: 0;
+            background: var(--accent);
+            transition: width .08s linear;
         }
 
         #show_time {
-            font-size: 3rem;
-            font-weight: bold;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            font-size: 18px;
+            font-variant-numeric: tabular-nums;
+            color: var(--accent);
+            letter-spacing: .04em;
         }
 
         #show_time_font {
-            font-size: 1rem;
-            opacity: 0.8;
-            margin-bottom: 20px;
+            font-size: 12px;
+            letter-spacing: .16em;
             text-transform: uppercase;
-            letter-spacing: 2px;
+            color: var(--muted);
         }
 
         #number {
-            font-size: 4rem;
-            font-weight: bold;
-            color: #4ecdc4;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-            margin-bottom: 15px;
-            animation: pulse 2s ease-in-out infinite;
+            margin: 10px 0 4px;
+            font-size: clamp(56px, 14vw, 88px);
+            font-weight: 300;
+            line-height: 1;
+            font-variant-numeric: tabular-nums;
+            color: var(--text);
+        }
+
+        #cps {
+            display: flex;
+            align-items: baseline;
+            gap: 6px;
+            margin: 8px 0 12px;
+            font-size: 15px;
+            color: var(--muted);
+        }
+
+        #cps_value {
+            font-size: 20px;
+            font-weight: 500;
+            color: var(--text);
+            font-variant-numeric: tabular-nums;
+        }
+
+        #cps_font {
+            font-size: 11px;
+            letter-spacing: .16em;
         }
 
         #title {
-            font-size: 2rem;
-            font-weight: 600;
-            opacity: 0.9;
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: .1em;
+            color: var(--muted);
+            transition: color .2s ease;
         }
 
-        .controls {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            display: flex;
-            gap: 10px;
+        #box:hover #title {
+            color: var(--text);
         }
 
-        .control-btn {
-            padding: 10px 15px;
-            background: rgba(255, 255, 255, 0.2);
-            border: none;
-            border-radius: 10px;
-            color: white;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
-        }
-
-        .control-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: translateY(-2px);
-        }
-
-        .result-modal {
+        /* ---------- 结果 ---------- */
+        #result {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
+            inset: 0;
+            z-index: 20;
             display: none;
             justify-content: center;
             align-items: center;
-            z-index: 1000;
+            padding: 20px;
+            background: rgba(20, 22, 26, .28);
+            backdrop-filter: blur(2px);
         }
 
-        .result-content {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            padding: 40px;
+        #result.show {
+            display: flex;
+            animation: fade .2s ease;
+        }
+
+        @keyframes fade {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
+
+        .result-card {
+            width: min(320px, 100%);
+            padding: 36px 28px;
+            background: var(--surface);
             border-radius: 20px;
-            text-align: center;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            backdrop-filter: blur(10px);
-            animation: modalSlideIn 0.5s ease-out;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, .12);
         }
 
-        .result-title {
-            font-size: 2.5rem;
-            margin-bottom: 20px;
-            color: #4ecdc4;
+        .result-card .label {
+            font-size: 12px;
+            letter-spacing: .16em;
+            text-transform: uppercase;
+            color: var(--muted);
         }
 
-        .result-cps {
-            font-size: 3rem;
-            font-weight: bold;
-            margin-bottom: 20px;
+        .result-card .value {
+            margin: 10px 0 4px;
+            font-size: 52px;
+            font-weight: 300;
+            line-height: 1;
+            color: var(--accent);
+            font-variant-numeric: tabular-nums;
         }
 
-        .result-details {
-            margin-bottom: 30px;
-            opacity: 0.9;
+        .result-card .sub {
+            font-size: 13px;
+            color: var(--muted);
         }
 
-        .result-buttons {
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-        }
-
-        .result-btn {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 25px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-
-        .btn-primary {
-            background: linear-gradient(45deg, #4ecdc4, #44a08d);
-            color: white;
-        }
-
-        .btn-secondary {
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-
-        .result-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-        }
-
-        .click-effect {
-            position: absolute;
-            width: 100px;
-            height: 100px;
-            border: 2px solid #4ecdc4;
-            border-radius: 50%;
-            pointer-events: none;
-            animation: clickRipple 0.6s ease-out;
-        }
-
-        .progress-bar {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            height: 4px;
-            background: linear-gradient(90deg, #4ecdc4, #44a08d);
-            transition: width 0.1s ease;
-            border-radius: 0 0 25px 25px;
-        }
-
-        @keyframes gradientShift {
-            0%, 100% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-        }
-
-        @keyframes fadeInDown {
-            from {
-                opacity: 0;
-                transform: translateY(-30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-        }
-
-        @keyframes shine {
-            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
-            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
-        }
-
-        @keyframes clickRipple {
-            0% {
-                transform: scale(0);
-                opacity: 1;
-            }
-            100% {
-                transform: scale(4);
-                opacity: 0;
-            }
-        }
-
-        @keyframes modalSlideIn {
-            from {
-                opacity: 0;
-                transform: scale(0.8) translateY(-50px);
-            }
-            to {
-                opacity: 1;
-                transform: scale(1) translateY(0);
-            }
-        }
-
-        .keyboard-hints {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 15px;
-            padding: 15px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            min-width: 180px;
-        }
-
-        .hint-title {
-            font-weight: bold;
-            margin-bottom: 10px;
-            text-align: center;
-            font-size: 0.9rem;
-        }
-
-        .hint-item {
-            display: flex;
-            align-items: center;
-            margin: 8px 0;
-            font-size: 0.8rem;
-            gap: 8px;
-        }
-
-        .hint-item kbd {
-            background: rgba(255, 255, 255, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 4px;
-            padding: 2px 6px;
-            font-size: 0.7rem;
-            font-family: monospace;
-            min-width: 24px;
-            text-align: center;
-        }
-
-        .leaderboard-content {
-            max-height: 400px;
-            overflow-y: auto;
-            margin-bottom: 20px;
-        }
-
-        .leaderboard-list {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .leaderboard-item {
-            display: grid;
-            grid-template-columns: 50px 1fr 60px 80px;
-            gap: 10px;
-            align-items: center;
-            background: rgba(255, 255, 255, 0.1);
-            padding: 12px;
+        .result-card button {
+            margin-top: 24px;
+            width: 100%;
+            padding: 11px 0;
+            border: 1px solid var(--line);
             border-radius: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            transition: all 0.3s ease;
+            background: var(--text);
+            color: #fff;
+            font-size: 14px;
+            font-family: inherit;
+            cursor: pointer;
+            transition: opacity .2s ease;
         }
 
-        .leaderboard-item:hover {
-            background: rgba(255, 255, 255, 0.15);
-            transform: translateY(-2px);
+        .result-card button:hover {
+            opacity: .86;
         }
 
-        .leaderboard-item .rank {
-            font-size: 1.2rem;
-            font-weight: bold;
-            text-align: center;
+        footer {
+            font-size: 12px;
+            color: var(--muted);
         }
 
-        .leaderboard-item .cps {
-            font-size: 1.1rem;
-            font-weight: bold;
-            color: #4ecdc4;
-        }
-
-        .leaderboard-item .duration {
-            font-size: 0.9rem;
-            opacity: 0.8;
-            text-align: center;
-        }
-
-        .leaderboard-item .date {
-            font-size: 0.8rem;
-            opacity: 0.7;
-            text-align: right;
-        }
-
-        @media (max-width: 768px) {
-            .main-title {
-                font-size: 2.5rem;
-            }
-            
-            .stats-panel {
-                position: relative;
-                top: auto;
-                right: auto;
-                margin-bottom: 20px;
-                width: 90%;
-            }
-            
-            .keyboard-hints {
-                position: relative;
-                bottom: auto;
-                right: auto;
-                margin-top: 20px;
-                width: 90%;
-            }
-            
-            .time-options {
-                gap: 10px;
-            }
-            
-            .time-option label {
-                padding: 10px 16px;
-                min-width: 60px;
-                font-size: 0.9rem;
-            }
-            
-            #box {
-                height: min(350px, 50vh);
-            }
-            
-            #number {
-                font-size: 3rem;
-            }
-            
-            #show_time {
-                font-size: 2.5rem;
-            }
-            
-            .controls {
-                position: relative;
-                bottom: auto;
-                left: auto;
-                margin-top: 20px;
-                justify-content: center;
-            }
+        @media (max-width: 560px) {
+            #box { min-height: 46vh; border-radius: 16px; }
+            #switch_time label { padding: 7px 12px; font-size: 13px; }
+            .segmented { border-radius: 18px; }
         }
     </style>
-    <script type="text/javascript">
-        let timer = 0;
-        let number = 0;
-        let setTime = 10;
-        let showTimeNum;
-        let timeoutId;
-        let isRunning = false;
-        let startTime;
-        let bestCPS = localStorage.getItem('bestCPS') || 0;
-        let totalTests = localStorage.getItem('totalTests') || 0;
-        let totalClicks = localStorage.getItem('totalClicks') || 0;
-        let soundEnabled = localStorage.getItem('soundEnabled') !== 'false';
-        let currentTheme = localStorage.getItem('theme') || 'default';
-        let leaderboard = JSON.parse(localStorage.getItem('leaderboard') || '[]');
-
-        // 音效
-        function playClickSound() {
-            if (!soundEnabled) return;
-            try {
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const oscillator = audioContext.createOscillator();
-                const gainNode = audioContext.createGain();
-                
-                oscillator.connect(gainNode);
-                gainNode.connect(audioContext.destination);
-                
-                oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-                oscillator.type = 'sine';
-                
-                gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
-                
-                oscillator.start(audioContext.currentTime);
-                oscillator.stop(audioContext.currentTime + 0.1);
-            } catch (e) {
-                console.log('音效播放失败:', e);
-            }
-        }
-
-        // 切换音效
-        function toggleSound() {
-            soundEnabled = !soundEnabled;
-            localStorage.setItem('soundEnabled', soundEnabled);
-            updateSoundButton();
-        }
-
-        function updateSoundButton() {
-            const btn = document.getElementById('sound-btn');
-            if (btn) {
-                btn.innerHTML = soundEnabled ? '🔊 音效' : '🔇 静音';
-                btn.title = soundEnabled ? '关闭音效' : '开启音效';
-            }
-        }
-
-        // 创建点击特效
-        function createClickEffect(x, y) {
-            const effect = document.createElement('div');
-            effect.className = 'click-effect';
-            effect.style.left = (x - 50) + 'px';
-            effect.style.top = (y - 50) + 'px';
-            document.getElementById('box').appendChild(effect);
-            
-            setTimeout(() => {
-                effect.remove();
-            }, 600);
-        }
-
-        // 更新统计面板
-        function updateStats() {
-            document.getElementById('best-cps').textContent = parseFloat(bestCPS).toFixed(2);
-            document.getElementById('total-tests').textContent = totalTests;
-            document.getElementById('total-clicks').textContent = totalClicks;
-        }
-
-        // 设置时间函数
-        function setTimeValue(seconds) {
-            if (isRunning) return;
-            setTime = seconds;
-            document.getElementById("set_time").innerText = setTime;
-            
-            // 更新选中状态
-            document.querySelectorAll('input[name="switchTime"]').forEach(radio => {
-                radio.checked = false;
-            });
-            document.getElementById(seconds + 's').checked = true;
-        }
-
-        function setTime1s() { setTimeValue(1); }
-        function setTime2s() { setTimeValue(2); }
-        function setTime5s() { setTimeValue(5); }
-        function setTime10s() { setTimeValue(10); }
-
-        function clicked(event) {
-            if (isRunning) {
-                number++;
-                document.getElementById("number").innerText = number;
-                
-                // 播放音效和特效
-                playClickSound();
-                createClickEffect(event.offsetX, event.offsetY);
-                
-                // 更新进度条
-                const elapsed = (Date.now() - startTime) / 1000;
-                const progress = Math.min((elapsed / setTime) * 100, 100);
-                document.querySelector('.progress-bar').style.width = progress + '%';
-                
-                return;
-            }
-            
-            // 开始测试
-            startTest();
-            number++;
-            document.getElementById("number").innerText = number;
-            playClickSound();
-            createClickEffect(event.offsetX, event.offsetY);
-        }
-
-        function startTest() {
-            isRunning = true;
-            startTime = Date.now();
-            document.getElementById("switch_time").style.display = "none";
-            document.getElementById("title").innerText = "疯狂点击!";
-            
-            timeoutId = setTimeout(endTest, setTime * 1000);
-            showTimeNum = setInterval(showTime, 10);
-            
-            // 显示进度条
-            const progressBar = document.querySelector('.progress-bar');
-            progressBar.style.width = '0%';
-        }
-
-        function endTest() {
-            isRunning = false;
-            clearInterval(showTimeNum);
-            clearTimeout(timeoutId);
-            
-            const cps = (number / setTime).toFixed(2);
-            const currentCPS = parseFloat(cps);
-            
-            // 更新统计数据
-            totalTests = parseInt(totalTests) + 1;
-            totalClicks = parseInt(totalClicks) + number;
-            
-            if (currentCPS > parseFloat(bestCPS)) {
-                bestCPS = currentCPS;
-                localStorage.setItem('bestCPS', bestCPS);
-            }
-            
-            localStorage.setItem('totalTests', totalTests);
-            localStorage.setItem('totalClicks', totalClicks);
-            
-            // 更新排行榜
-            updateLeaderboard(currentCPS, setTime);
-            
-            showResult(cps, currentCPS > parseFloat(bestCPS));
-        }
-
-        function showResult(cps, isNewRecord) {
-            const modal = document.getElementById('result-modal');
-            const cpsElement = document.getElementById('result-cps');
-            const detailsElement = document.getElementById('result-details');
-            
-            cpsElement.textContent = cps + ' CPS';
-            
-            let performance = '';
-            const cpsNum = parseFloat(cps);
-            if (cpsNum >= 10) performance = '🔥 超神级别!';
-            else if (cpsNum >= 8) performance = '⚡ 闪电手速!';
-            else if (cpsNum >= 6) performance = '🚀 极速点击!';
-            else if (cpsNum >= 4) performance = '👍 不错的速度!';
-            else performance = '💪 继续加油!';
-            
-            detailsElement.innerHTML = `
-                <div style="margin-bottom: 10px;">${performance}</div>
-                <div>总点击: ${number} 次</div>
-                <div>测试时长: ${setTime} 秒</div>
-                <div>平均间隔: ${(setTime * 1000 / number).toFixed(0)} 毫秒</div>
-                ${isNewRecord ? '<div style="color: #4ecdc4; font-weight: bold; margin-top: 10px;">🎉 新纪录!</div>' : ''}
-            `;
-            
-            modal.style.display = 'flex';
-            updateStats();
-        }
-
-        function showTime() {
-            timer++;
-            const elapsed = (timer / 100).toFixed(2);
-            document.getElementById("show_time").innerText = elapsed;
-            
-            // 更新进度条
-            const progress = Math.min((parseFloat(elapsed) / setTime) * 100, 100);
-            document.querySelector('.progress-bar').style.width = progress + '%';
-        }
-
-        function restartTest() {
-            document.getElementById('result-modal').style.display = 'none';
-            resetTest();
-        }
-
-        function resetTest() {
-            timer = 0;
-            number = 0;
-            isRunning = false;
-            
-            clearInterval(showTimeNum);
-            clearTimeout(timeoutId);
-            
-            document.getElementById("switch_time").style.display = "block";
-            document.getElementById("number").innerText = "0";
-            document.getElementById("show_time").innerText = "0.00";
-            document.getElementById("title").innerText = "点击开始";
-            document.querySelector('.progress-bar').style.width = '0%';
-        }
-
-        function clearStats() {
-            if (confirm('确定要清除所有统计数据吗？')) {
-                localStorage.removeItem('bestCPS');
-                localStorage.removeItem('totalTests');
-                localStorage.removeItem('totalClicks');
-                localStorage.removeItem('leaderboard');
-                bestCPS = 0;
-                totalTests = 0;
-                totalClicks = 0;
-                leaderboard = [];
-                updateStats();
-            }
-        }
-
-        // 排行榜功能
-        function updateLeaderboard(cps, duration) {
-            const record = {
-                cps: parseFloat(cps),
-                duration: duration,
-                date: new Date().toLocaleDateString(),
-                time: new Date().toLocaleTimeString()
-            };
-            
-            leaderboard.push(record);
-            leaderboard.sort((a, b) => b.cps - a.cps);
-            leaderboard = leaderboard.slice(0, 10); // 只保留前10名
-            
-            localStorage.setItem('leaderboard', JSON.stringify(leaderboard));
-        }
-
-        function showLeaderboard() {
-            const modal = document.getElementById('leaderboard-modal');
-            const content = document.getElementById('leaderboard-content');
-            
-            if (leaderboard.length === 0) {
-                content.innerHTML = '<p style="text-align: center; opacity: 0.7;">暂无记录</p>';
-            } else {
-                let html = '<div class="leaderboard-list">';
-                leaderboard.forEach((record, index) => {
-                    const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
-                    html += `
-                        <div class="leaderboard-item">
-                            <span class="rank">${medal}</span>
-                            <span class="cps">${record.cps.toFixed(2)} CPS</span>
-                            <span class="duration">${record.duration}秒</span>
-                            <span class="date">${record.date}</span>
-                        </div>
-                    `;
-                });
-                html += '</div>';
-                content.innerHTML = html;
-            }
-            
-            modal.style.display = 'flex';
-        }
-
-        // 显示统计信息
-        function showStats() {
-            // 关闭结果模态框
-            document.getElementById('result-modal').style.display = 'none';
-            
-            // 结束当前测试
-            resetTest();
-            
-            // 高亮统计面板
-            const statsPanel = document.querySelector('.stats-panel');
-            statsPanel.style.animation = 'none';
-            statsPanel.style.transform = 'scale(1.05)';
-            statsPanel.style.boxShadow = '0 0 30px rgba(78, 205, 196, 0.6)';
-            statsPanel.style.border = '2px solid #4ecdc4';
-            
-            // 2秒后恢复正常
-            setTimeout(() => {
-                statsPanel.style.transform = 'scale(1)';
-                statsPanel.style.boxShadow = '';
-                statsPanel.style.border = '1px solid rgba(255, 255, 255, 0.2)';
-            }, 2000);
-            
-            // 更新统计数据
-            updateStats();
-        }
-
-        // 键盘快捷键
-        document.addEventListener('keydown', function(e) {
-            if (e.code === 'Space' && !isRunning) {
-                e.preventDefault();
-                const event = new MouseEvent('click', {
-                    bubbles: true,
-                    cancelable: true,
-                    offsetX: 300,
-                    offsetY: 200
-                });
-                document.getElementById('box').dispatchEvent(event);
-            } else if (e.key >= '1' && e.key <= '4' && !isRunning) {
-                const times = [1, 2, 5, 10];
-                setTimeValue(times[parseInt(e.key) - 1]);
-            } else if (e.key === 'r' || e.key === 'R') {
-                // 检查是否有模态框打开，如果有则不执行重置
-                const resultModal = document.getElementById('result-modal');
-                const leaderboardModal = document.getElementById('leaderboard-modal');
-                if (resultModal.style.display === 'flex' || leaderboardModal.style.display === 'flex') {
-                    return;
-                }
-                e.preventDefault();
-                resetTest();
-            } else if (e.key === 'Escape') {
-                const resultModal = document.getElementById('result-modal');
-                const leaderboardModal = document.getElementById('leaderboard-modal');
-                if (resultModal.style.display === 'flex') {
-                    resultModal.style.display = 'none';
-                } else if (leaderboardModal.style.display === 'flex') {
-                    leaderboardModal.style.display = 'none';
-                }
-            }
-        });
-
-        // 页面加载完成后初始化
-        window.addEventListener('load', function() {
-            updateStats();
-            updateSoundButton();
-            
-            // 默认选中10秒
-            document.getElementById('10s').checked = true;
-        });
-    </script>
 </head>
 <body>
-    <!-- 统计面板 -->
-    <div class="stats-panel">
-        <div class="stats-title">📊 统计数据</div>
-        <div class="stat-item">
-            <span>最佳成绩:</span>
-            <span id="best-cps">0.00</span>
-        </div>
-        <div class="stat-item">
-            <span>测试次数:</span>
-            <span id="total-tests">0</span>
-        </div>
-        <div class="stat-item">
-            <span>总点击数:</span>
-            <span id="total-clicks">0</span>
-        </div>
-    </div>
-
-    <!-- 主标题 -->
-    <div class="header">
-        <h1 class="main-title">🚀 CPS 测试器</h1>
-        <p class="subtitle">测试你的点击速度极限！</p>
-    </div>
-
-    <!-- 时间选择 -->
     <div id="switch_time">
-        <div id="show_time_title">
-            <span id="set_time">10</span>秒钟点击速度测试
-        </div>
-        <div class="time-options">
-            <div class="time-option">
-                <input type="radio" name="switchTime" id="1s" onclick="setTime1s()">
-                <label for="1s">1秒</label>
-            </div>
-            <div class="time-option">
-                <input type="radio" name="switchTime" id="2s" onclick="setTime2s()">
-                <label for="2s">2秒</label>
-            </div>
-            <div class="time-option">
-                <input type="radio" name="switchTime" id="5s" onclick="setTime5s()">
-                <label for="5s">5秒</label>
-            </div>
-            <div class="time-option">
-                <input type="radio" name="switchTime" id="10s" onclick="setTime10s()">
-                <label for="10s">10秒</label>
-            </div>
+        <div id="show_time_title"><span id="set_time">10</span> 秒钟要点击的速度</div>
+        <div class="segmented">
+            <input type="radio" name="switchTime" id="1s" onclick="setTime1s()"><label for="1s">1 S</label>
+            <input type="radio" name="switchTime" id="2s" onclick="setTime2s()"><label for="2s">2 S</label>
+            <input type="radio" name="switchTime" id="5s" onclick="setTime5s()"><label for="5s">5 S</label>
+            <input type="radio" name="switchTime" id="10s" onclick="setTime10s()" checked><label for="10s">10 S</label>
+            <input type="radio" name="switchTime" id="30s" onclick="setTime30s()"><label for="30s">30 S</label>
+            <input type="radio" name="switchTime" id="60s" onclick="setTime60s()"><label for="60s">60 S</label>
         </div>
     </div>
 
-    <!-- 点击区域 -->
-    <div id="box" onclick="clicked(event)">
-        <div class="click-area">
-            <div id="show_time">0.00</div>
-            <div id="show_time_font">秒</div>
-            <div id="number">0</div>
-            <div id="title">点击开始</div>
-        </div>
-        <div class="progress-bar"></div>
+    <div id="box" onclick="clicked()">
+        <div id="progress"></div>
+        <div id="show_time">0.00</div>
+        <div id="show_time_font">Second</div>
+        <div id="number">0</div>
+        <div id="cps" title="最近 1 秒的平均点击速度"><span id="cps_value">0.00</span><span id="cps_font">CPS</span></div>
+        <div id="title">Click Here</div>
     </div>
 
-    <!-- 控制按钮 -->
-    <div class="controls">
-        <button class="control-btn" onclick="resetTest()" title="重置测试 (R)">🔄 重置</button>
-        <button class="control-btn" onclick="clearStats()" title="清除统计">🗑️ 清除</button>
-        <button class="control-btn" id="sound-btn" onclick="toggleSound()" title="切换音效">🔊 音效</button>
-        <button class="control-btn" onclick="showLeaderboard()" title="查看排行榜">🏆 排行榜</button>
-    </div>
+    <footer>左键 / 右键 / 空格键均可点击 · 长按无效</footer>
 
-    <!-- 结果模态框 -->
-    <div id="result-modal" class="result-modal">
-        <div class="result-content">
-            <h2 class="result-title">🎯 测试结果</h2>
-            <div id="result-cps" class="result-cps">0.00 CPS</div>
-            <div id="result-details" class="result-details"></div>
-            <div class="result-buttons">
-                <button class="result-btn btn-primary" onclick="restartTest()">🔄 再次测试</button>
-                <button class="result-btn btn-secondary" onclick="showStats()">📊 查看统计</button>
-            </div>
+    <div id="result">
+        <div class="result-card">
+            <div class="label">CPS</div>
+            <div class="value" id="result_value">0.00</div>
+            <div class="sub" id="result_sub"></div>
+            <button onclick="reset()">再来一次</button>
         </div>
     </div>
 
-    <!-- 键盘提示 -->
-    <div class="keyboard-hints">
-        <div class="hint-title">⌨️ 快捷键</div>
-        <div class="hint-item"><kbd>空格</kbd> 开始测试</div>
-        <div class="hint-item"><kbd>1-4</kbd> 选择时间</div>
-        <div class="hint-item"><kbd>R</kbd> 重置测试</div>
-        <div class="hint-item"><kbd>ESC</kbd> 关闭弹窗</div>
-    </div>
+    <script>
+        let number = 0;      // 点击次数
+        let setTime = 10;    // 设定秒数
+        let startTime = 0;   // 起始时间戳
+        let running = false;
+        let endTimer = 0;
+        let rafId = 0;
+        let clickTimes = [];  // 最近若干次点击的时间戳，用于估算瞬时速度
+        const RATE_SAMPLE = 5;    // 取最近几次点击的间隔估算速度
+        const SMOOTH_TAU = 260;   // 平滑时间常数(ms)，越大越稳、越小越灵敏
+        const IDLE_MS = 400;      // 超过这么久没点击，瞬时速度按 0 处理（数值自然回落）
+        const MAX_SAMPLES = 24;   // 时间戳最多保留多少个
+        let smoothCps = 0;        // 平滑后的实时 CPS
+        let lastTickTime = 0;
 
-    <!-- 排行榜模态框 -->
-    <div id="leaderboard-modal" class="result-modal">
-        <div class="result-content" style="max-width: 500px;">
-            <h2 class="result-title">🏆 排行榜</h2>
-            <div id="leaderboard-content" class="leaderboard-content"></div>
-            <div class="result-buttons">
-                <button class="result-btn btn-secondary" onclick="document.getElementById('leaderboard-modal').style.display='none'">关闭</button>
-            </div>
-        </div>
-    </div>
+        const $ = id => document.getElementById(id);
+
+        function updateSetTime(sec) {
+            if (running) return;
+            setTime = sec;
+            $('set_time').innerText = sec;
+        }
+
+        function setTime1s()  { updateSetTime(1); }
+        function setTime2s()  { updateSetTime(2); }
+        function setTime5s()  { updateSetTime(5); }
+        function setTime10s() { updateSetTime(10); }
+
+        function setTime30s() { updateSetTime(30); }
+
+        function setTime60s() { updateSetTime(60); }
+
+        function clicked() {
+            if (!running) {
+                running = true;
+                number = 0;
+                clickTimes = [];
+                smoothCps = 0;
+                lastTickTime = 0;
+                startTime = performance.now();
+                $('box').classList.add('running', 'fullscreen');
+                document.body.classList.add('locked');
+                $('switch_time').classList.add('hidden');
+                $('title').innerText = 'Clicking…';
+                endTimer = setTimeout(judge, setTime * 1000);
+                rafId = requestAnimationFrame(tick);
+            }
+            number++;
+            clickTimes.push(performance.now());
+            if (clickTimes.length > MAX_SAMPLES) clickTimes.shift();
+            $('number').innerText = number;
+        }
+
+        function tick() {
+            const now = performance.now();
+            const elapsed = Math.min(now - startTime, setTime * 1000);
+            $('show_time').innerText = (elapsed / 1000).toFixed(2);
+            $('progress').style.width = (elapsed / (setTime * 1000) * 100) + '%';
+
+            const dt = lastTickTime ? Math.min(now - lastTickTime, 200) : 16;
+            lastTickTime = now;
+            // 指数平滑：瞬时速度 -> 平滑值，避免每次点击硬跳 1.00
+            smoothCps += (rawCps(now) - smoothCps) * (1 - Math.exp(-dt / SMOOTH_TAU));
+            $('cps_value').innerText = smoothCps.toFixed(2);
+
+            if (running) rafId = requestAnimationFrame(tick);
+        }
+
+        // 瞬时速度：用最近几次点击的平均间隔反推每秒次数（间隔是连续量，天然带小数）
+        function rawCps(now) {
+            if (clickTimes.length < 2) return 0;
+            // 停手超过 IDLE_MS 视为速度为 0，数值会平滑回落而不是卡在旧值
+            if (now - clickTimes[clickTimes.length - 1] > IDLE_MS) return 0;
+            const from = Math.max(0, clickTimes.length - RATE_SAMPLE);
+            const span = clickTimes[clickTimes.length - 1] - clickTimes[from];
+            const gaps = clickTimes.length - 1 - from; // 间隔个数
+            return span > 0 ? gaps / (span / 1000) : 0;
+        }
+
+        function judge() {
+            running = false;
+            cancelAnimationFrame(rafId);
+            const cps = number / setTime;
+            $('result_value').innerText = cps.toFixed(2);
+            $('result_sub').innerText = setTime + ' 秒内点击 ' + number + ' 次';
+            $('result').classList.add('show');
+            $('title').innerText = 'Click Here';
+            // 移开焦点，防止空格误触发结果页按钮
+            if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+        }
+
+        function reset() {
+            clearTimeout(endTimer);
+            $('result').classList.remove('show');
+            $('box').classList.remove('running', 'fullscreen');
+            document.body.classList.remove('locked');
+            $('switch_time').classList.remove('hidden');
+            $('progress').style.width = '0';
+            $('show_time').innerText = '0.00';
+            $('cps_value').innerText = '0.00';
+            $('number').innerText = '0';
+            number = 0;
+            clickTimes = [];
+            smoothCps = 0;
+            lastTickTime = 0;
+            running = false;
+        }
+
+        // 禁用右键菜单，右键同样计一次点击
+        document.addEventListener('contextmenu', e => {
+            e.preventDefault();
+            if ($('result').classList.contains('show')) return;
+            // 未开测时，只有点在点击区内才开始计时，避免误触时长选择区
+            if (!running && !$('box').contains(e.target)) return;
+            clicked();
+        });
+        // 键盘计数：长按不重复计分，测试结束后空格不再触发“再来一次”
+        let keyHeld = false;
+
+        document.addEventListener('keydown', e => {
+            if (e.code !== 'Space' && e.key !== 'Enter') return;
+            e.preventDefault();                 // 阻止空格滚动页面 / 触发按钮默认行为
+            if (e.repeat || keyHeld) return;     // 系统自动重复、或未松手再按，都不计分
+            keyHeld = true;
+            if ($('result').classList.contains('show')) return; // 结果页空格失效，需手动点按钮
+            const box = $('box');
+            box.classList.add('tap');
+            setTimeout(() => box.classList.remove('tap'), 80);
+            clicked();
+        });
+
+        document.addEventListener('keyup', e => {
+            if (e.code === 'Space' || e.key === 'Enter') keyHeld = false;
+        });
+
+        // 失焦时补一次复位，避免 keyup 丢失导致按键状态卡死
+        window.addEventListener('blur', () => { keyHeld = false; });
+    </script>
 </body>
 </html>
