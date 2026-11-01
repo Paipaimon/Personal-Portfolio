@@ -43,7 +43,7 @@ function change() {
         <div style="background: #f7fafc; padding: 15px; border-radius: 10px; border: 1px solid #e2e8f0;">
             <h4 style="margin: 0 0 10px 0; color: #4a5568;">💡 使用提示:</h4>
             <ul style="margin: 0; padding-left: 20px; color: #718096; font-size: 16px;">
-                <li>支持英文缩写查询</li>
+                <li>支持英文缩写查询，需要滑动查看</li>
                 <li>常见网络用语: LOL, OMG, WTF, LMAO等</li>
                 <li>技术缩写: API, URL, HTML, CSS等</li>
                 <li>页面已集成第三方解释服务</li>

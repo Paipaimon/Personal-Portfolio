@@ -1,424 +1,275 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>自动贪吃蛇</title>
-
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#fafafa">
+<title>循 · 自动贪吃蛇</title>
 <style>
-    * {
-        box-sizing: border-box;
-    }
-
-    body {
-        margin: 0;
-        background: #f5f5f5;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        min-height: 100vh;
-        font-family: Arial, sans-serif;
-        color: #333;
-    }
-
-    h1 {
-        margin-bottom: 12px;
-        font-size: 26px;
-        font-weight: 600;
-    }
-
-    .score-board {
-        display: flex;
-        gap: 20px;
-        margin-bottom: 14px;
-        font-size: 18px;
-    }
-
-    .panel {
-        background: white;
-        padding: 10px 18px;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    }
-
-    canvas {
-        background: #fff;
-        border-radius: 12px;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-    }
-
-    .tip {
-        margin-top: 12px;
-        color: #777;
-        font-size: 14px;
-    }
+:root{color-scheme:light;--paper:#f6f7f3;--ink:#213a33;--muted:#7c8982;--line:#dfe5dd;--green:#287554}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font-family:Inter,"Segoe UI","Microsoft YaHei",sans-serif;font-size:14px}button,select{font:inherit}button{cursor:pointer}button:focus-visible,select:focus-visible{outline:3px solid #888;outline-offset:4px}
+.shell{max-width:1080px;margin:0 auto;padding:42px 38px 24px}header{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:23px}.brand{display:flex;align-items:center;gap:13px}.mark{width:35px;height:35px;display:grid;place-items:center;border:1px solid #b8cabc;border-radius:11px;font-size:23px;font-weight:600}.brand-title{font-size:19px;font-weight:600;letter-spacing:3px}.subtitle{font-size:10px;letter-spacing:2.2px;color:var(--muted);margin-top:5px}.tag{font-size:11px;letter-spacing:1.4px;color:var(--muted)}
+main{display:grid;grid-template-columns:minmax(0,600px) minmax(240px,1fr);gap:48px;padding-top:30px}.board-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;font-size:11px;color:var(--muted);letter-spacing:1.4px}.live{display:flex;align-items:center;gap:7px;color:var(--green)}.dot{width:6px;height:6px;border-radius:50%;background:currentColor}.board-wrap{position:relative;background:#fff;border:1px solid #d6dfd4;border-radius:5px;overflow:hidden;aspect-ratio:1;box-shadow:0 12px 45px #00000006}canvas{width:100%;height:100%;display:block}.overlay{position:absolute;inset:0;background:#f6f7f3d9;backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;text-align:center}.overlay[hidden]{display:none}.overlay h2{font-size:29px;letter-spacing:4px;margin:0 0 12px}.overlay p{color:#6b7c70;margin:0}.legend{display:flex;align-items:center;gap:20px;margin-top:17px;font-size:11px;color:var(--muted)}.legend span{display:flex;align-items:center;gap:7px}.legend i{display:block;width:7px;height:7px;border-radius:2px;background:#287554}.legend .food{background:#d57e58;border-radius:50%}.legend .tail{background:#bfd9b9}.board-bottom{margin-left:auto;font-variant-numeric:tabular-nums}
+aside{padding-top:4px}.eyebrow{font-size:10px;letter-spacing:2px;color:var(--muted)}h1{font-weight:500;font-size:27px;letter-spacing:2px;margin:13px 0 9px}.intro{color:var(--muted);line-height:1.9;font-size:12px;margin:0 0 27px}.score-block{border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:20px 0}.score-label{font-size:12px;color:#697d70}.score-line{display:flex;align-items:baseline;gap:10px}.score{font-size:70px;line-height:1.25;font-weight:400;letter-spacing:-4px;font-variant-numeric:tabular-nums}.score-cap{font-size:12px;color:#8c978e}.stats{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:20px 0 23px}.stat-label{color:var(--muted);font-size:11px;margin-bottom:9px}.stat-value{font-size:23px;letter-spacing:.5px;font-variant-numeric:tabular-nums}.progress-label{display:flex;justify-content:space-between;color:var(--muted);font-size:11px;margin:0 0 9px}.track{height:4px;background:#e0e7dc;border-radius:4px;overflow:hidden}.fill{height:100%;width:.75%;background:#609571;transition:width .2s}
+.controls{margin-top:30px}.control-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;font-size:12px}.control-heading small{color:var(--muted);font-size:10px}.speeds{display:flex;gap:5px}.speeds button{flex:1;padding:9px 0;background:transparent;color:#6f8074;border:1px solid var(--line);border-radius:5px;font-size:12px}.speeds button[aria-pressed=true]{color:#fff;background:var(--ink);border-color:var(--ink)}.actions{display:flex;gap:9px;margin-top:14px}.actions button{padding:12px;border-radius:5px;border:1px solid #cbd7ca;background:transparent;color:var(--ink)}.actions .primary{flex:1;background:#e7eee2;border-color:#e7eee2}.actions .restart{width:75px}.strategy{border-top:1px solid var(--line);margin-top:28px;padding-top:19px}.strategy-title{font-size:11px;display:flex;align-items:center;gap:7px}.strategy p{font-size:11px;line-height:1.9;color:var(--muted);margin:9px 0 0}footer{display:flex;justify-content:space-between;color:#939d94;font-size:10px;letter-spacing:.7px;padding-top:32px}.key{border:1px solid #d6ded2;border-radius:3px;padding:2px 5px;font-family:inherit}
+@media(max-width:760px){.shell{padding:23px 20px}main{gap:25px;grid-template-columns:1fr}.tag{font-size:9px}aside{display:grid;grid-template-columns:1fr 1fr;gap:0 24px}aside>.eyebrow,aside>h1,aside>.intro{display:none}.score-block{grid-column:1;border-top:0}.score{font-size:56px}.stats{grid-column:2;grid-row:1;align-content:center;margin:0;border-bottom:1px solid var(--line)}.progress-area{grid-column:1 / -1;margin-top:20px}.controls{grid-column:1 / -1;margin-top:23px}.strategy{grid-column:1 / -1;margin-top:23px}footer{padding-top:24px}.board-bottom{font-size:10px}.legend{gap:13px}.stat-value{font-size:20px}}
+@media(prefers-reduced-motion:reduce){.fill{transition:none}}
+.seed-panel{margin-top:20px;grid-column:1 / -1}.seed-row{display:flex;gap:6px;margin-top:8px}.seed-row input{min-width:0;width:100%;padding:9px;border:1px solid var(--line);border-radius:5px;background:#fff;color:var(--ink);font:inherit}.seed-row button,.sprint{border:1px solid var(--line);border-radius:5px;padding:9px;background:#e7eee2;color:var(--ink);white-space:nowrap}.seed-note{font-size:10px;color:var(--muted);margin-top:7px;overflow-wrap:anywhere}.sprint{width:100%;margin-top:9px}.sprint[aria-pressed=true]{background:var(--ink);color:white}.planning{font-size:11px;line-height:1.9;margin-top:10px;color:#697d70;overflow-wrap:anywhere}.intro{margin-bottom:15px}.controls{margin-top:20px}.strategy{margin-top:18px}
+:root{--paper:#fafafa;--ink:#181818;--muted:#777;--line:#ddd;--green:#333;--board:#fff;--grid:#e8e8e8;--soft:#eee;--tail:#c6c6c6;--head:#171717;--eye:#fff;--pupil:#111}
+body[data-theme=dark]{color-scheme:dark;--paper:#131313;--ink:#eee;--muted:#999;--line:#383838;--green:#ddd;--board:#1c1c1c;--grid:#303030;--soft:#292929;--tail:#555;--head:#f4f4f4;--eye:#111;--pupil:#fff}
+.mark,.board-wrap,.actions button,.key{border-color:var(--line)}.board-wrap,.seed-row input{background:var(--board)}.overlay{background:var(--paper);opacity:.95}.score-label,.overlay p,.planning,.strategy-title,.speeds button,footer{color:var(--muted)}.track,.actions .primary,.seed-row button,.sprint{background:var(--soft);border-color:var(--line)}.fill,.legend i{background:var(--ink)}.legend .food{background:var(--ink)}.legend .tail{background:var(--tail)}.speeds button[aria-pressed=true],.sprint[aria-pressed=true]{background:var(--ink);color:var(--paper)}.theme{background:transparent;border:1px solid var(--line);border-radius:5px;padding:8px;color:var(--ink);font:inherit}
 </style>
 </head>
 <body>
-
-<h1>自动版贪吃蛇</h1>
-
-<div class="score-board">
-    <div class="panel">
-        当前分数：<span id="score">0</span>
-    </div>
-    <div class="panel">
-        最佳分数：<span id="bestScore">0</span>
-    </div>
+<div class="shell">
+  <header><div class="brand"><div class="mark" aria-hidden="true">循</div><div><div class="brand-title">自动贪吃蛇</div><div class="subtitle">SNAKE / AUTOPILOT</div></div></div><button id="theme" class="theme" aria-pressed="false">切换暗色</button></header>
+  <main>
+    <section aria-label="贪吃蛇棋盘">
+      <div class="board-top"><span class="live" id="status"><i class="dot"></i><span id="statusText">自动运行中</span></span><span>THE PLAYGROUND</span></div>
+      <div class="board-wrap"><canvas id="board" role="img" aria-label="20乘20自动贪吃蛇棋盘，深浅渐变标识蛇身，眼睛标识头部，圆点为食物"></canvas><div class="overlay" id="overlay" hidden><div><h2 id="overlayTitle">已暂停</h2><p id="overlayText">让思绪休息一下。</p></div></div></div>
+      <div class="legend"><span><i></i>蛇头</span><span><i class="tail"></i>蛇尾</span><span><i class="food"></i>食物</span><span class="board-bottom" id="lengthLabel">003 / 400 格</span></div>
+    </section>
+    <aside>
+      <div class="eyebrow">A LITTLE GAME OF PATIENCE</div><h1>算好路，走满格。</h1><p class="intro">同一种子，多种走法。<br>动态改线，选择更少步数的满盘方案。</p>
+      <div class="score-block"><div class="score-label">本局得分</div><div class="score-line"><strong class="score" id="score">0</strong><span class="score-cap">/ 397</span></div></div>
+      <div class="stats"><div><div class="stat-label">最佳分数 ↗</div><div class="stat-value" id="best">0</div></div><div><div class="stat-label">游戏时间</div><div class="stat-value" id="time">00:00</div></div></div>
+      <div class="progress-area"><div class="progress-label"><span>棋盘占用</span><span id="percent">0.8%</span></div><div class="track"><div class="fill" id="fill"></div></div></div>
+      <div class="controls"><div class="control-heading"><span>运行倍速</span><small id="rate">每秒 32 步</small></div><div class="speeds" role="group" aria-label="运行倍速"><button data-speed="1" aria-pressed="false">1×</button><button data-speed="2" aria-pressed="false">2×</button><button data-speed="4" aria-pressed="true">4×</button><button data-speed="8" aria-pressed="false">8×</button><button data-speed="16" aria-pressed="false">16×</button><button data-speed="32" aria-pressed="false">32×</button></div><div class="actions"><button class="primary" id="toggle">Ⅱ 暂停</button><button class="restart" id="restart" title="重新开始当前游戏">↻ 重开</button></div></div>
+      <div class="seed-panel"><label for="seed">随机种子</label><form class="seed-row" id="seedForm"><input id="seed" maxlength="80" placeholder="输入数字或文字" autocomplete="off"><button type="submit">应用</button><button type="button" id="randomSeed">随机</button></form><div class="seed-note" id="seedNote"></div><button class="sprint" id="sprint" aria-pressed="false">⚡ 冲刺满盘 · 2048×</button></div>
+      <div class="strategy"><div class="strategy-title"><span class="dot" style="color:var(--ink)"></span>种子试算 · 动态改线</div><div class="planning" id="planning"></div><p>根据种子试算 8 种动态路线，选取已满盘方案中步数最少的一条。行进中重连空闲区域，保留蛇身安全顺序，不再固定靠左绕行。候选搜索不保证全局最优。</p></div>
+    </aside>
+  </main>
+  <footer><span>无需操作，享受生长。</span><span><kbd class="key">Space</kbd> 暂停 / 继续</span></footer>
 </div>
-
-<canvas id="game"></canvas>
-
-<div class="tip">
-    稳定型 AI · 自动重启 · 20×20 网格
-</div>
-
 <script>
-const canvas = document.getElementById('game');
-const ctx = canvas.getContext('2d');
-
-const GRID = 20; // 改成20x20
-const CELL = 30;
-
-canvas.width = GRID * CELL;
-canvas.height = GRID * CELL;
-
-const scoreEl = document.getElementById('score');
-const bestScoreEl = document.getElementById('bestScore');
-
-let bestScore = parseInt(localStorage.getItem('snake_best')) || 0;
-bestScoreEl.textContent = bestScore;
-
-let snake, food, score, alive;
-let headDirection = { x: 1, y: 0 };
-
-function initGame() {
-    const mid = Math.floor(GRID / 2);
-
-    snake = [
-        {x: mid, y: mid},
-        {x: mid - 1, y: mid},
-        {x: mid - 2, y: mid}
-    ];
-
-    score = 0;
-    alive = true;
-
-    headDirection = { x: 1, y: 0 };
-
-    scoreEl.textContent = score;
-
-    spawnFood();
+'use strict';
+// Seeded food and independently seeded dynamic route search.
+function seededRandom(seed) {
+  let state=2166136261;
+  for(const ch of String(seed)){state=Math.imul(state ^ ch.codePointAt(0),16777619)>>>0;}
+  return ()=>{state=(state+0x6D2B79F5)>>>0;let t=state;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return ((t^(t>>>14))>>>0)/4294967296;};
 }
-
-function spawnFood() {
-    while (true) {
-        let x = Math.floor(Math.random() * GRID);
-        let y = Math.floor(Math.random() * GRID);
-
-        let hit = snake.some(s => s.x === x && s.y === y);
-
-        if (!hit) {
-            food = {x, y};
-            return;
-        }
+class SnakeGame {
+  constructor(seed = 'snake-2026',variant=0) {
+    this.variant=variant;this.n=20; this.total=400; this.seed=seed; this.cycle=[];
+    for(let x=0;x<20;x++) this.cycle.push(x);
+    for(let y=1;y<20;y++) {
+      if(y%2) for(let x=19;x>=1;x--) this.cycle.push(y*20+x);
+      else for(let x=1;x<20;x++) this.cycle.push(y*20+x);
     }
-}
-
-function key(x, y) {
-    return `${x},${y}`;
-}
-
-function curFromKey(k) {
-    const [x, y] = k.split(',').map(Number);
-    return {x, y};
-}
-
-function inBounds(x, y) {
-    return x >= 0 && x < GRID && y >= 0 && y < GRID;
-}
-
-function getNeighbors(node) {
-    return [
-        {x: node.x + 1, y: node.y},
-        {x: node.x - 1, y: node.y},
-        {x: node.x, y: node.y + 1},
-        {x: node.x, y: node.y - 1}
-    ];
-}
-
-function bfs(start, target, body) {
-    const queue = [start];
-    const visited = new Set([key(start.x, start.y)]);
-    const parent = new Map();
-
-    while (queue.length) {
-        const cur = queue.shift();
-
-        if (cur.x === target.x && cur.y === target.y) {
-            const path = [];
-            let k = key(cur.x, cur.y);
-
-            while (parent.has(k)) {
-                path.unshift(curFromKey(k));
-                k = parent.get(k);
-            }
-
-            return path;
-        }
-
-        for (const next of getNeighbors(cur)) {
-            if (!inBounds(next.x, next.y)) continue;
-
-            let blocked = body.some(
-                b => b.x === next.x && b.y === next.y
-            );
-
-            if (
-                blocked &&
-                !(next.x === target.x && next.y === target.y)
-            ) {
-                continue;
-            }
-
-            const k = key(next.x, next.y);
-
-            if (!visited.has(k)) {
-                visited.add(k);
-                parent.set(k, key(cur.x, cur.y));
-                queue.push(next);
-            }
-        }
+    for(let y=19;y>=1;y--) this.cycle.push(y*20);
+    this.order=Array(400);
+    this.cycle.forEach((cell,i)=>this.order[cell]=i);
+    this.baseCycle=this.cycle.slice();this.reset();
+  }
+  reset(seed=this.seed) { this.cycle=this.baseCycle.slice();this.cycle.forEach((v,k)=>this.order[v]=k);this.rewires=0; this.seed=seed;this.random=typeof seed==='function'?seed:seededRandom(seed);this.choose=seededRandom(seed+' / plan / '+this.variant);this.snake=[];this.food=null;for(let k=0;k<100;k++)this.rewire(false);const start=200;this.snake=[this.cycle[start],this.cycle[start-1],this.cycle[start-2]]; this.score=0; this.steps=0; this.won=false;this.route=[];this.plan=null;this.nextPlan=0; this.placeFood(); }
+  rewire(optimize=true) {
+    const edges=Array.from({length:400},()=>[]);for(let k=0;k<400;k++){const a=this.cycle[k],b=this.cycle[(k+1)%400];edges[a].push(b);edges[b].push(a);}
+    const square=(q)=>{const a=(q/19|0)*20+q%19,b=a+1,c=a+20,d=c+1;const has=(u,v)=>edges[u].includes(v);if(has(a,b)&&has(c,d)&&!has(a,c)&&!has(b,d))return [[a,b],[c,d],[a,c],[b,d]];if(has(a,c)&&has(b,d)&&!has(a,b)&&!has(c,d))return [[a,c],[b,d],[a,b],[c,d]];return null;};
+    const flip=(p)=>{for(const [u,v] of p.slice(0,2)){edges[u].splice(edges[u].indexOf(v),1);edges[v].splice(edges[v].indexOf(u),1);}for(const [u,v] of p.slice(2)){edges[u].push(v);edges[v].push(u);}};
+    const first=square(Math.floor(this.choose()*361));if(!first)return;flip(first);
+    const component=new Set(),queue=[0];component.add(0);for(let k=0;k<queue.length;k++)for(const v of edges[queue[k]])if(!component.has(v)){component.add(v);queue.push(v);}if(component.size===400)return;
+    const offset=Math.floor(this.choose()*361);let merged=false;for(let k=0;k<361;k++){const p=square((k+offset)%361);if(p&&component.has(p[0][0])!==component.has(p[1][0])){flip(p);merged=true;break;}}if(!merged)return;
+    let candidate=[0],prev=-1,current=0;for(let k=1;k<400;k++){const next=edges[current].find(v=>v!==prev);candidate.push(next);prev=current;current=next;}
+    if(new Set(candidate).size!==400)return;
+    for(let direction=0;direction<2;direction++){
+      const order=Array(400);candidate.forEach((v,k)=>order[v]=k);let valid=true;
+      if(this.snake.length){let sum=0;for(let k=this.snake.length-1;k>0;k--)sum+=(order[this.snake[k-1]]-order[this.snake[k]]+400)%400;if(sum>=400)valid=false;
+        if(optimize&&((order[this.food]-order[this.snake[0]]+400)%400)>this.distance(this.snake[0],this.food))valid=false;}
+      if(valid){this.cycle=candidate;this.order=order;this.rewires=(this.rewires||0)+1;return;}candidate.reverse();
     }
-
-    return null;
+  }
+  placeFood() {
+    const occupied=new Set(this.snake), free=[];
+    for(let c=0;c<400;c++) if(!occupied.has(c)) free.push(c);
+    this.food=free.length ? free[Math.floor(this.random()*free.length)] : null;
+  }
+  distance(a,b) { return (this.order[b]-this.order[a]+400)%400; }
+  neighbors(c) {const a=[];if(c%20>0)a.push(c-1);if(c%20<19)a.push(c+1);if(c>=20)a.push(c-20);if(c<380)a.push(c+20);return a;}
+  shortest(safe=false) {
+    const head=this.snake[0],tail=this.snake.at(-1),blocked=new Set(this.snake.slice(1));
+    const dist=new Int16Array(400).fill(-1),ways=Array(400).fill(0n),parents=Array.from({length:400},()=>[]),queue=[head];
+    dist[head]=0;ways[head]=1n;
+    const limit=Math.min(this.distance(head,tail)-1,this.distance(head,this.food));
+    for(let i=0;i<queue.length;i++) {
+      const u=queue[i];if(dist[this.food]>=0 && dist[u]>=dist[this.food])break;
+      for(const v of this.neighbors(u)) {
+        if(blocked.has(v))continue;
+        if(safe && (this.distance(head,v)>limit || this.distance(head,v)<=this.distance(head,u)))continue;
+        if(dist[v]<0){dist[v]=dist[u]+1;queue.push(v);}
+        if(dist[v]===dist[u]+1){ways[v]+=ways[u];parents[v].push(u);}
+      }
+    }
+    // Every equal-length predecessor is retained: this DAG represents ALL
+    // shortest paths without exponential enumeration. BigInt keeps counts exact.
+    const path=[];
+    if(dist[this.food]>=0){let c=this.food;while(c!==head){path.push(c);c=parents[c][0];}path.reverse();}
+    return {length:dist[this.food],count:ways[this.food],parents,path};
+  }
+  planRoute() {
+    for(let k=0;k<12;k++)this.rewire();
+    const all=this.shortest(),safe=this.shortest(true);
+    this.plan={all,safe,at:this.steps};this.route=safe.path.slice();this.nextPlan=this.steps+16;
+  }
+  step(forced) {
+    if(this.won) return false;
+    if(forced===undefined && !this.route.length && this.steps>=this.nextPlan)this.planRoute();
+    const head=this.snake[0], tail=this.snake[this.snake.length-1];
+    const x=head%20,y=Math.floor(head/20), candidates=[];
+    if(x>0)candidates.push(head-1); if(x<19)candidates.push(head+1);
+    if(y>0)candidates.push(head-20); if(y<19)candidates.push(head+20);
+    const occupied=new Set(this.snake.slice(0,-1));
+    const foodDistance=this.distance(head,this.food), tailDistance=this.distance(head,tail);
+    let next=null, bestAdvance=-1;
+    for(const c of candidates) {
+      const advance=this.distance(head,c), growing=c===this.food;
+      if(occupied.has(c) || advance===0 || advance>foodDistance) continue;
+      if(advance>tailDistance || (growing && advance===tailDistance)) continue;
+      if(advance>bestAdvance) { next=c; bestAdvance=advance; }
+    }
+    if(this.route.length)next=this.route.shift();
+    if(forced!==undefined)next=forced;
+    if(!this.neighbors(head).includes(next)||this.snake.slice(0,next===this.food?undefined:-1).includes(next))throw new Error('Invalid replay move');
+    if(next===null) throw new Error('安全路线不变量被破坏');
+    const ate=next===this.food;
+    this.snake.unshift(next);
+    if(ate) {
+      this.score++;
+      if(this.snake.length===this.total) { this.won=true; this.food=null; }
+      else this.placeFood();
+      this.route=[];this.nextPlan=0;
+    } else this.snake.pop();
+    this.steps++;
+    return ate;
+  }
 }
-
-function safePath(path) {
-    const virtualSnake = snake.map(s => ({...s}));
-
-    for (let step of path) {
-        virtualSnake.unshift(step);
-
-        const eat =
-            step.x === food.x &&
-            step.y === food.y;
-
-        if (!eat) {
-            virtualSnake.pop();
-        }
-    }
-
-    const head = virtualSnake[0];
-    const tail = virtualSnake[virtualSnake.length - 1];
-
-    const body = virtualSnake.slice(0, -1);
-
-    return bfs(head, tail, body) !== null;
+const game=new SnakeGame(new URLSearchParams(location.hash.slice(1)).get('seed')||'snake-2026'), $=id=>document.getElementById(id);
+$('seed').value=game.seed;
+const canvas=$('board'),ctx=canvas.getContext('2d');
+let best=0, storageAvailable=true;
+try { best=Math.max(0,Math.min(397,Number(localStorage.getItem('snake-autopilot-best-v1'))||0)); } catch {storageAvailable=false;}
+if(!storageAvailable) $('best').title='当前浏览器不允许本地存储，最佳分数仅保留在本次打开期间';
+let speed=4,paused=false,elapsed=0,accumulator=0,last=performance.now(),size=600;
+let searching=false,searchError='',searchNote='',worker=null,replay=[],replayIndex=0;
+const cachedPlans=new Map();
+function planner(){onmessage=e=>{const seed=e.data.seed;let best=null;for(let v=0;v<8;v++){const trial=new SnakeGame(seed,v),moves=[];while(!trial.won&&trial.steps<80000&&(!best||trial.steps<best.moves.length)){trial.step();moves.push(trial.snake[0]);}if(trial.won&&(!best||moves.length<best.moves.length))best={moves,variant:v,rewires:trial.rewires};postMessage({progress:v+1,best:best?best.moves.length:null});}postMessage({done:true,result:best});};}
+function usePlan(result){game.variant=result.variant;game.reset(game.seed);replay=result.moves;replayIndex=0;searching=false;last=performance.now();accumulator=0;searchNote='8 组候选中最少 '+replay.length.toLocaleString()+' 步 · 动态改线 '+result.rewires+' 次';draw();updateUI();}
+function beginSearch(){
+  if(worker){worker.terminate();worker=null;}searching=true;searchError='';searchNote='准备 8 组候选 · 试算不计入游戏时间';replay=[];replayIndex=0;
+  if(cachedPlans.has(game.seed)){usePlan(cachedPlans.get(game.seed));return;}
+  let url;
+  try{url=URL.createObjectURL(new Blob([seededRandom.toString()+'\n'+SnakeGame.toString()+'\n('+planner.toString()+')()'],{type:'text/javascript'}));worker=new Worker(url);URL.revokeObjectURL(url);
+    worker.onmessage=e=>{const m=e.data;if(!m.done){searchNote='已试算 '+m.progress+' / 8'+(m.best?' · 当前最少 '+m.best.toLocaleString()+' 步':'');updateUI();return;}worker.terminate();worker=null;if(m.result){cachedPlans.set(game.seed,m.result);if(cachedPlans.size>12)cachedPlans.delete(cachedPlans.keys().next().value);usePlan(m.result);}else{searching=false;searchError='候选预算内没有找到满盘路线，请尝试其他种子。';updateUI();}};
+    worker.onerror=()=>{worker.terminate();worker=null;searching=false;searchError='后台计算失败，请重开；若浏览器禁用 Worker，请换用支持的浏览器。';updateUI();};worker.postMessage({seed:game.seed});
+  }catch(error){if(url)URL.revokeObjectURL(url);searching=false;searchError='浏览器未能启动后台计算。请换用支持 Worker 的浏览器。';}
 }
-
-function chooseMove() {
-    const head = snake[0];
-    const tail = snake[snake.length - 1];
-    const bodyWithoutTail = snake.slice(0, -1);
-
-    const foodPath = bfs(head, food, bodyWithoutTail);
-
-    if (foodPath && safePath(foodPath)) {
-        return foodPath[0];
-    }
-
-    const tailPath = bfs(head, tail, bodyWithoutTail);
-
-    if (tailPath?.length) {
-        return tailPath[0];
-    }
-
-    for (const d of getNeighbors(head)) {
-        if (!inBounds(d.x, d.y)) continue;
-
-        let hit = snake.some(
-            s => s.x === d.x && s.y === d.y
-        );
-
-        if (!hit) return d;
-    }
-
-    return null;
+$('theme').addEventListener('click',()=>{const dark=document.body.dataset.theme!=='dark';document.body.dataset.theme=dark?'dark':'light';$('theme').textContent=dark?'切换亮色':'切换暗色';$('theme').setAttribute('aria-pressed',String(dark));draw();});
+function saveBest() {
+  if(game.score<=best)return;
+  best=game.score;
+  try{localStorage.setItem('snake-autopilot-best-v1',String(best));}catch{}
 }
-
-function update() {
-    if (!alive) return;
-
-    const next = chooseMove();
-
-    if (!next) {
-        gameOver();
-        return;
-    }
-
-    const head = snake[0];
-
-    headDirection = {
-        x: next.x - head.x,
-        y: next.y - head.y
-    };
-
-    snake.unshift(next);
-
-    const eat =
-        next.x === food.x &&
-        next.y === food.y;
-
-    if (eat) {
-        score++;
-        scoreEl.textContent = score;
-
-        if (score > bestScore) {
-            bestScore = score;
-            bestScoreEl.textContent = bestScore;
-            localStorage.setItem(
-                'snake_best',
-                bestScore
-            );
-        }
-
-        spawnFood();
-    } else {
-        snake.pop();
-    }
-
-    const newHead = snake[0];
-
-    for (let i = 1; i < snake.length; i++) {
-        if (
-            snake[i].x === newHead.x &&
-            snake[i].y === newHead.y
-        ) {
-            gameOver();
-            return;
-        }
-    }
+function updateUI() {
+  $('score').textContent=game.score; $('best').textContent=best;
+  const secs=Math.floor(elapsed/1000), mins=Math.floor(secs/60);
+  $('time').textContent=String(mins).padStart(2,'0')+':'+String(secs%60).padStart(2,'0');
+  $('lengthLabel').textContent=String(game.snake.length).padStart(3,'0')+' / 400 格';
+  $('percent').textContent=(game.snake.length/4).toFixed(1)+'%';
+  $('fill').style.width=game.snake.length/4+'%';
+  $('statusText').textContent=game.won?'已填满棋盘':paused?'已暂停':document.hidden?'后台暂停':'自动运行中';
+  $('overlay').hidden=!paused && !game.won;
+  $('overlayTitle').textContent=game.won?'满格，通关。':'已暂停';
+  $('overlayText').textContent=game.won?'397 分 · 每一格，都走到了。':'点击继续，或按空格键。';
+  $('toggle').textContent=game.won?'✓ 已通关':paused?'▶ 继续':'Ⅱ 暂停';
+  $('toggle').disabled=game.won;
+  $('seedNote').textContent='当前：'+game.seed+' · 重开可复现，倍速不影响结果';
+  const p=game.plan;
+  $('planning').textContent=searching?searchNote:searchError?searchError:'已走 '+game.steps.toLocaleString()+' / '+replay.length.toLocaleString()+' 步\n'+searchNote;
+  if(searching){$('statusText').textContent='正在试算种子';$('overlay').hidden=false;$('overlayTitle').textContent='正在寻找更短路线';$('overlayText').textContent=searchNote;}
+  if(searchError){$('statusText').textContent='试算未完成';$('overlay').hidden=false;$('overlayTitle').textContent='试算暂不可用';$('overlayText').textContent=searchError;}
+  $('toggle').disabled=searching||!!searchError||game.won;
+  $('planning').style.whiteSpace='pre-line';
 }
-
-function gameOver() {
-    alive = false;
-
-    setTimeout(() => {
-        initGame();
-    }, 1000);
+function roundedRect(x,y,w,h,r,color) {
+  ctx.fillStyle=color;ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fill();
 }
-
-function drawGrid() {
-    ctx.strokeStyle = '#e9e9e9';
-    ctx.lineWidth = 1;
-
-    for (let i = 0; i <= GRID; i++) {
-        ctx.beginPath();
-        ctx.moveTo(i * CELL, 0);
-        ctx.lineTo(i * CELL, canvas.height);
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.moveTo(0, i * CELL);
-        ctx.lineTo(canvas.width, i * CELL);
-        ctx.stroke();
-    }
-}
-
-function drawSnakeHead(x, y) {
-    const px = x * CELL;
-    const py = y * CELL;
-
-    ctx.fillStyle = '#111';
-
-    ctx.beginPath();
-    ctx.roundRect(
-        px + 2,
-        py + 2,
-        CELL - 4,
-        CELL - 4,
-        8
-    );
-    ctx.fill();
-
-    // 眼睛位置（方向标识）
-    let eye1, eye2;
-
-    if (headDirection.x === 1) {
-        eye1 = [px + 21, py + 10];
-        eye2 = [px + 21, py + 20];
-    } else if (headDirection.x === -1) {
-        eye1 = [px + 9, py + 10];
-        eye2 = [px + 9, py + 20];
-    } else if (headDirection.y === -1) {
-        eye1 = [px + 10, py + 9];
-        eye2 = [px + 20, py + 9];
-    } else {
-        eye1 = [px + 10, py + 21];
-        eye2 = [px + 20, py + 21];
-    }
-
-    ctx.fillStyle = "#fff";
-
-    for (const [ex, ey] of [eye1, eye2]) {
-        ctx.beginPath();
-        ctx.arc(ex, ey, 3, 0, Math.PI * 2);
-        ctx.fill();
-    }
-}
-
 function draw() {
-    ctx.clearRect(
-        0,
-        0,
-        canvas.width,
-        canvas.height
-    );
-
-    drawGrid();
-
-    // 食物
-    ctx.fillStyle = '#444';
-    ctx.beginPath();
-    ctx.roundRect(
-        food.x * CELL + 6,
-        food.y * CELL + 6,
-        CELL - 12,
-        CELL - 12,
-        6
-    );
-    ctx.fill();
-
-    snake.forEach((s, index) => {
-        if (index === 0) {
-            drawSnakeHead(s.x, s.y);
-            return;
-        }
-
-        ctx.fillStyle = '#222';
-
-        ctx.beginPath();
-        ctx.roundRect(
-            s.x * CELL + 2,
-            s.y * CELL + 2,
-            CELL - 4,
-            CELL - 4,
-            8
-        );
-        ctx.fill();
-    });
+  const cell=size/20;ctx.clearRect(0,0,size,size);
+  const colors=getComputedStyle(document.body),color=n=>colors.getPropertyValue(n).trim();
+  ctx.fillStyle=color('--board');ctx.fillRect(0,0,size,size);
+  ctx.strokeStyle=color('--grid');ctx.lineWidth=.65;
+  ctx.beginPath();
+  for(let i=0;i<=20;i++){ctx.moveTo(i*cell,0);ctx.lineTo(i*cell,size);ctx.moveTo(0,i*cell);ctx.lineTo(size,i*cell);}
+  ctx.stroke();
+  if(game.route.length){ctx.save();ctx.strokeStyle=color('--muted');ctx.lineWidth=cell*.09;ctx.setLineDash([cell*.15,cell*.2]);ctx.beginPath();[game.snake[0],...game.route].forEach((p,i)=>{const x=(p%20+.5)*cell,y=(Math.floor(p/20)+.5)*cell;if(i)ctx.lineTo(x,y);else ctx.moveTo(x,y);});ctx.stroke();ctx.restore();}
+  if(game.food!==null) {
+    const fx=(game.food%20+.5)*cell,fy=(Math.floor(game.food/20)+.5)*cell;
+    ctx.fillStyle=color('--ink');ctx.beginPath();ctx.arc(fx,fy,cell*.23,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=color('--paper');ctx.beginPath();ctx.arc(fx-cell*.065,fy-cell*.065,cell*.07,0,Math.PI*2);ctx.fill();
+  }
+  const count=game.snake.length;
+  for(let i=count-1;i>=0;i--) {
+    const p=game.snake[i],x=(p%20)*cell,y=Math.floor(p/20)*cell,t=i/Math.max(1,count-1);
+    const dark=document.body.dataset.theme==='dark',v=Math.round(dark?244-159*t:23+175*t),rgb=[v,v,v];
+    roundedRect(x+cell*.085,y+cell*.085,cell*.83,cell*.83,cell*.2,`rgb(${rgb.join(',')})`);
+  }
+  const h=game.snake[0],neck=game.snake[1],hx=(h%20+.5)*cell,hy=(Math.floor(h/20)+.5)*cell;
+  const dx=h%20-neck%20,dy=Math.floor(h/20)-Math.floor(neck/20);
+  // Eyes follow the direction of travel; the tapered light tail marks the end.
+  for(const side of [-1,1]) {
+    const ex=hx+dx*cell*.18-dy*side*cell*.17,ey=hy+dy*cell*.18+dx*side*cell*.17;
+    ctx.fillStyle=color('--eye');ctx.beginPath();ctx.arc(ex,ey,cell*.085,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=color('--pupil');ctx.beginPath();ctx.arc(ex+dx*cell*.025,ey+dy*cell*.025,cell*.038,0,Math.PI*2);ctx.fill();
+  }
 }
-
-function loop() {
-    update();
-    draw();
+function resize(){
+  size=canvas.getBoundingClientRect().width;
+  const dpr=window.devicePixelRatio||1;
+  canvas.width=Math.round(size*dpr);canvas.height=Math.round(size*dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);draw();
 }
-
-initGame();
-setInterval(loop, 70);
+function toggle(){if(searching||searchError||game.won)return;paused=!paused;last=performance.now();updateUI();}
+$('toggle').addEventListener('click',toggle);
+function restart(seed=game.seed){
+  game.variant=0;game.reset(seed);$('seed').value=seed;elapsed=0;accumulator=0;paused=false;last=performance.now();
+  try{history.replaceState(null,'','#'+new URLSearchParams({seed}));}catch{}
+  beginSearch();updateUI();draw();
+}
+$('restart').addEventListener('click',()=>restart());
+$('seedForm').addEventListener('submit',e=>{e.preventDefault();const seed=$('seed').value.trim();if(seed)restart(seed);else{$('seed').value=game.seed;}});
+$('randomSeed').addEventListener('click',()=>{const data=new Uint32Array(2);crypto.getRandomValues(data);restart(Array.from(data,n=>n.toString(36)).join('-'));});
+function setSpeed(value){speed=value;accumulator=0;document.querySelectorAll('[data-speed]').forEach(b=>b.setAttribute('aria-pressed',String(Number(b.dataset.speed)===speed)));$('sprint').setAttribute('aria-pressed',String(speed===2048));$('rate').textContent='目标每秒 '+(speed*8).toLocaleString()+' 步';}
+$('sprint').addEventListener('click',()=>setSpeed(speed===2048?4:2048));
+document.querySelectorAll('[data-speed]').forEach(button=>{
+  button.addEventListener('click',()=>{
+    setSpeed(Number(button.dataset.speed));
+  });
+});
+document.addEventListener('keydown',e=>{
+  if(e.code==='Space' && !['BUTTON','INPUT','SELECT','TEXTAREA'].includes(e.target.tagName)){
+    e.preventDefault();if(!e.repeat)toggle();
+  }
+});
+document.addEventListener('visibilitychange',()=>{last=performance.now();accumulator=0;updateUI();});
+new ResizeObserver(resize).observe(canvas);
+let lastUI=0;
+function frame(now){
+  const delta=Math.max(0,now-last);last=now;
+  if(!searching && !searchError && !paused && !game.won && !document.hidden){
+    elapsed+=delta;accumulator+=Math.min(delta,250);
+    const interval=1000/(8*speed);let changed=false;
+    const budgetEnd=performance.now()+9;
+    while(accumulator>=interval && !game.won && performance.now()<budgetEnd){
+      if(replayIndex>=replay.length){searchError='路线已结束，请重开重新试算。';break;}
+      game.step(replay[replayIndex++]);game.route=replay.slice(replayIndex,replayIndex+16);accumulator-=interval;changed=true;
+    }
+    if(changed){saveBest();draw();}
+  }
+  if(now-lastUI>100 || game.won){updateUI();lastUI=now;}
+  requestAnimationFrame(frame);
+}
+resize();beginSearch();updateUI();requestAnimationFrame(frame);
 </script>
-
 </body>
 </html>
+

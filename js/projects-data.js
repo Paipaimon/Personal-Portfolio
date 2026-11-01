@@ -140,7 +140,17 @@ const PROJECTS_DATA = [
         tags: ['AI','Canvas', 'Interactive', 'Infinite Grid'],
         icon: '🔲',
         folder: 'projects/grid-painting'
-    }
+    },
+    {
+    name: 'TankFight',
+    title: '装甲前线',
+    type: 'Game',
+    description: '基于 Node.js 的在线多人坦克大战，支持四款战车、随机关卡、道具补给与精英 Boss，最多四人合作闯关并适配移动端。',
+    tags: ['AI', 'Node.js', 'HTML Canvas', 'JavaScript', 'Multiplayer', 'Mobile'],
+    icon: '🪖',
+    folder: 'tank-fight',
+    url: 'https://fun.jlands.cn'
+},
 ];
 
 // 导出项目数据供其他模块使用
