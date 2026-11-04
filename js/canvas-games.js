@@ -21,8 +21,8 @@
             this.size = 12;
             this.rounds = 0;
             this.interval = 0.045;
-            // Cycle order is the safety invariant. Shortcuts may skip empty
-            // cells, but cannot overtake the tail or the next piece of food.
+            // This initial cycle is only a safety scaffold. It is rewired around
+            // the live snake as food changes; it is not the scoring route.
             this.cycle = [];
             for (let x = 0; x < this.size; x++) this.cycle.push({ x, y: 0 });
             for (let y = 1; y < this.size; y++) {
@@ -33,6 +33,7 @@
                 }
             }
             for (let y = this.size - 1; y >= 1; y--) this.cycle.push({ x: 0, y });
+            this.baseCycle = this.cycle.map(cell => ({ ...cell }));
             this.order = Array(this.size * this.size);
             this.cycle.forEach((cell, index) => { this.order[this.id(cell)] = index; });
             this.plan = null;
@@ -48,10 +49,12 @@
             if (this.plan && this.plan.seed !== this.seed) this.plan = null;
             if (this.plan) this.variant = this.plan.variant;
             this.random = this.randomOverride || seededRandom(this.seed);
-            const choose = seededRandom(`${this.seed} / route / ${this.variant}`);
+            this.choose = seededRandom(`${this.seed} / route / ${this.variant}`);
+            this.cycle = this.baseCycle.map(cell => ({ ...cell }));
+            this.cycle.forEach((cell, index) => { this.order[this.id(cell)] = index; });
             this.directions = [[1, 0], [-1, 0], [0, 1], [0, -1]];
             for (let i = this.directions.length - 1; i > 0; i--) {
-                const j = Math.floor(choose() * (i + 1));
+                const j = Math.floor(this.choose() * (i + 1));
                 [this.directions[i], this.directions[j]] = [this.directions[j], this.directions[i]];
             }
             this.rounds++;
@@ -65,6 +68,9 @@
             this.route = [];
             this.replayIndex = 0;
             this.lastPathLength = null;
+            this.rewires = 0;
+            this.directPaths = 0;
+            this.nextPlanAt = 0;
             this.status = this.plan ? 'ready' : 'live';
             this.placeFood();
         }
@@ -85,7 +91,7 @@
             });
         }
 
-        findShortestFoodPath() {
+        foodPath(restrictCycle = false) {
             if (!this.food) return [];
             const head = this.id(this.body[0]), food = this.id(this.food);
             const occupied = new Set(this.body.slice(1).map(cell => this.id(cell)));
@@ -97,7 +103,8 @@
                 const current = queue[i];
                 for (const next of this.neighbors(current)) {
                     const advance = this.distance(head, next);
-                    if (parent[next] >= 0 || occupied.has(next) || advance > limit || advance <= this.distance(head, current)) continue;
+                    if (parent[next] >= 0 || occupied.has(next)) continue;
+                    if (restrictCycle && (advance > limit || advance <= this.distance(head, current))) continue;
                     parent[next] = current;
                     queue.push(next);
                 }
@@ -108,11 +115,143 @@
             return path.reverse();
         }
 
-        chooseMove() {
-            if (!this.route.length) {
-                this.route = this.findShortestFoodPath();
-                this.lastPathLength = this.route.length || null;
+        cycleAdmits(path) {
+            if (!path.length || !this.food) return false;
+            const head = this.id(this.body[0]);
+            const limit = Math.min(this.distance(head, this.id(this.food)), this.distance(head, this.id(this.body.at(-1))) - 1);
+            let previous = 0;
+            for (const id of path) {
+                const advance = this.distance(head, id);
+                if (advance <= previous || advance > limit) return false;
+                previous = advance;
             }
+            return true;
+        }
+
+        escapesAfterFood(path) {
+            if (!path.length) return false;
+            const body = this.body.map(cell => this.id(cell));
+            for (let step = 0; step < path.length; step++) {
+                const next = path[step], eating = step === path.length - 1;
+                if (body.slice(0, eating ? undefined : -1).includes(next)) return false;
+                body.unshift(next);
+                if (!eating) body.pop();
+            }
+            if (body.length === this.cycle.length) return true;
+            // A short route to food is rejected if its grown virtual body seals
+            // the head away from its moving tail.
+            const tail = body.at(-1), blocked = new Set(body.slice(1, -1));
+            const reached = new Set([body[0]]), queue = [body[0]];
+            for (let i = 0; i < queue.length; i++) {
+                for (const next of this.neighbors(queue[i])) {
+                    if (next === tail) return true;
+                    if (!blocked.has(next) && !reached.has(next)) { reached.add(next); queue.push(next); }
+                }
+            }
+            return false;
+        }
+
+        findShortestFoodPath() {
+            const shortest = this.foodPath();
+            if (this.cycleAdmits(shortest) && this.escapesAfterFood(shortest)) return shortest;
+            const safe = this.foodPath(true);
+            return this.escapesAfterFood(safe) ? safe : [];
+        }
+
+        rewire() {
+            const total = this.cycle.length, side = this.size - 1;
+            const edges = Array.from({ length: total }, () => []);
+            for (let i = 0; i < total; i++) {
+                const a = this.id(this.cycle[i]), b = this.id(this.cycle[(i + 1) % total]);
+                edges[a].push(b); edges[b].push(a);
+            }
+            const square = index => {
+                const a = Math.floor(index / side) * this.size + index % side, b = a + 1, c = a + this.size, d = c + 1;
+                const has = (u, v) => edges[u].includes(v);
+                if (has(a, b) && has(c, d) && !has(a, c) && !has(b, d)) return [[a, b], [c, d], [a, c], [b, d]];
+                if (has(a, c) && has(b, d) && !has(a, b) && !has(c, d)) return [[a, c], [b, d], [a, b], [c, d]];
+                return null;
+            };
+            const flip = pairs => {
+                for (const [a, b] of pairs.slice(0, 2)) {
+                    edges[a].splice(edges[a].indexOf(b), 1); edges[b].splice(edges[b].indexOf(a), 1);
+                }
+                for (const [a, b] of pairs.slice(2)) { edges[a].push(b); edges[b].push(a); }
+            };
+            const first = square(Math.floor(this.choose() * side * side));
+            if (!first) return false;
+            flip(first);
+            const reached = new Set([0]), queue = [0];
+            for (let i = 0; i < queue.length; i++) for (const next of edges[queue[i]]) {
+                if (!reached.has(next)) { reached.add(next); queue.push(next); }
+            }
+            // Two local edge exchanges split and rejoin the circuit in another
+            // shape. The live snake's cyclic order must survive the exchange.
+            if (reached.size === total) return false;
+            const start = Math.floor(this.choose() * side * side);
+            let joined = false;
+            for (let i = 0; i < side * side; i++) {
+                const next = square((start + i) % (side * side));
+                if (next && reached.has(next[0][0]) !== reached.has(next[1][0])) { flip(next); joined = true; break; }
+            }
+            if (!joined) return false;
+            let candidate = [0], previous = -1, current = 0;
+            for (let i = 1; i < total; i++) {
+                const next = edges[current].find(id => id !== previous);
+                candidate.push(next); previous = current; current = next;
+            }
+            if (new Set(candidate).size !== total) return false;
+            const head = this.id(this.body[0]), food = this.id(this.food);
+            const oldDistance = this.distance(head, food);
+            for (let direction = 0; direction < 2; direction++, candidate.reverse()) {
+                const order = Array(total);
+                candidate.forEach((id, i) => { order[id] = i; });
+                let span = 0;
+                for (let i = this.body.length - 1; i > 0; i--) {
+                    span += (order[this.id(this.body[i - 1])] - order[this.id(this.body[i])] + total) % total;
+                }
+                const foodDistance = (order[food] - order[head] + total) % total;
+                if (span >= total || foodDistance > oldDistance) continue;
+                this.cycle = candidate.map(id => this.cell(id));
+                this.order = order;
+                this.rewires++;
+                return true;
+            }
+            return false;
+        }
+
+        planRoute() {
+            const shortest = this.foodPath();
+            const canEscape = this.escapesAfterFood(shortest);
+            let best = null;
+            const consider = () => {
+                const route = canEscape && this.cycleAdmits(shortest) ? shortest : this.foodPath(true);
+                if (!route.length || !this.escapesAfterFood(route)) return false;
+                if (!best || route.length < best.route.length) {
+                    best = { route, cycle: this.cycle.slice(), order: this.order.slice() };
+                }
+                return route.length === shortest.length;
+            };
+            // A BFS can have several equally short paths. Keep a safe shortest
+            // one immediately, rather than distorting it to admit one arbitrary
+            // tie-break. When safety requires a detour, rewire the live backbone
+            // and retain the best admissible path and its matching circuit.
+            let optimal = consider();
+            for (let i = 0; !optimal && i < 32; i++) {
+                if (this.rewire() && shortest.length) optimal = consider();
+            }
+            if (best) {
+                this.cycle = best.cycle;
+                this.order = best.order;
+                this.route = best.route;
+                if (optimal) this.directPaths++;
+            } else this.route = [];
+            this.lastPathLength = this.route.length || null;
+            this.nextPlanAt = this.steps + 8;
+        }
+
+        chooseMove() {
+            if (!this.route.length && this.steps >= this.nextPlanAt) this.planRoute();
             if (this.route.length) return this.route.shift();
             const head = this.id(this.body[0]), tail = this.id(this.body.at(-1)), food = this.id(this.food);
             const occupied = new Set(this.body.slice(0, -1).map(cell => this.id(cell)));
@@ -153,6 +292,7 @@
                 this.score++;
                 this.won = this.body.length === this.size * this.size;
                 this.placeFood();
+                this.nextPlanAt = 0;
             } else {
                 this.body.pop();
             }
@@ -186,15 +326,15 @@
         for (let variant = 0; variant < candidates; variant++) {
             const trial = new AutoSnake({ seed, variant });
             const moves = [];
-            // Without passing food or overtaking the tail, each apple takes at
-            // most one full 144-cell circuit; this is also a bounded watchdog.
+            // Rewiring cannot increase distance to the current apple, and every
+            // move reduces it; each apple still takes at most 144 moves.
             while (!trial.won && trial.steps < 21000) moves.push(trial.step());
             if (!trial.won) throw new Error('Seeded snake candidate did not fill the board');
             candidateSteps.push(trial.steps);
-            if (!best || trial.steps < best.steps) best = { seed, variant, moves, steps: trial.steps };
+            if (!best || trial.steps < best.steps) best = { seed, variant, moves, steps: trial.steps, rewires: trial.rewires, directPaths: trial.directPaths };
             onProgress({ completed: variant + 1, total: candidates, bestSteps: best.steps });
         }
-        return { ...best, candidates, candidateSteps, strategy: 'BFS shortest safe food paths; shortest winning candidate' };
+        return { ...best, candidates, candidateSteps, strategy: 'Adaptive cycle rewiring and BFS shortest food paths; fewest-step winning candidate' };
     }
 
     const SHAPES = [

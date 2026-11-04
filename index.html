@@ -545,26 +545,28 @@
         <button id="canvas-home" type="button" data-canvas-view="default" title="返回默认视图" aria-label="返回默认视图" hidden>
             <span aria-hidden="true">↘</span>
         </button>
+        <button id="canvas-snake-link" type="button" data-canvas-view="snake" title="前往自动贪吃蛇" aria-label="前往自动贪吃蛇" hidden>
+            <span aria-hidden="true">↗</span>
+        </button>
+        <button id="canvas-tetris-link" type="button" data-canvas-view="tetris" title="前往自动俄罗斯方块" aria-label="前往自动俄罗斯方块" hidden>
+            <span aria-hidden="true">↙</span>
+        </button>
+
+        <button id="canvas-explore" type="button">探索画布 <span aria-hidden="true">↗</span></button>
+        <nav id="canvas-nav" aria-label="探索画布菜单" hidden>
+            <button type="button" data-canvas-view="profile">↖ 关于我</button>
+            <button type="button" data-canvas-view="snake">↗ 贪吃蛇</button>
+            <button type="button" data-canvas-view="tetris">↙ 俄罗斯方块</button>
+            <button type="button" data-canvas-view="overview">全景</button>
+            <button id="canvas-exit" type="button" data-canvas-view="default">返回首页</button>
+            <span>拖动平移 · 滚轮 / 双指缩放</span>
+        </nav>
 
         <section id="canvas-profile" aria-labelledby="canvas-profile-title" hidden>
             <div data-profile-content></div>
             <nav class="canvas-region-links" aria-label="画布区域">
                 <button type="button" data-canvas-view="snake">↗ 贪吃蛇</button>
                 <button type="button" data-canvas-view="tetris">↙ 俄罗斯方块</button>
-                <button type="button" data-canvas-view="default">↘ 返回首页</button>
-            </nav>
-        </section>
-
-        <section id="canvas-snake-controls" aria-label="贪吃蛇路线设置" hidden>
-            <form id="snake-seed-form">
-                <label for="snake-seed">随机种子</label>
-                <input id="snake-seed" name="seed" maxlength="80" autocomplete="off" spellcheck="false" value="snake-2026" required>
-                <button type="submit">计算路线</button>
-                <button id="snake-new-seed" type="button">随机</button>
-            </form>
-            <output id="snake-plan-status" form="snake-seed-form" role="status" aria-live="polite">准备计算路线</output>
-            <nav class="canvas-region-links" aria-label="离开贪吃蛇区域">
-                <button type="button" data-canvas-view="profile">↖ 关于我</button>
                 <button type="button" data-canvas-view="default">↘ 返回首页</button>
             </nav>
         </section>

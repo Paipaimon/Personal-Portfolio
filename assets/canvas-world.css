@@ -1,9 +1,10 @@
-/* Every region follows the same canvas camera. No separate exploration mode. */
+/* World content follows the camera; zoom is available only in exploration mode. */
 html, body {
     width: 100%;
     max-width: 100vw;
     overflow-x: clip;
 }
+body { touch-action: pan-y; }
 #canvas-background canvas { touch-action: none; }
 
 #homepage-content {
@@ -43,7 +44,9 @@ html, body {
 }
 
 #canvas-entry,
-#canvas-home {
+#canvas-home,
+#canvas-snake-link,
+#canvas-tetris-link {
     position: absolute;
     top: 0;
     left: 0;
@@ -60,7 +63,9 @@ html, body {
 }
 
 #canvas-entry::before,
-#canvas-home::before {
+#canvas-home::before,
+#canvas-snake-link::before,
+#canvas-tetris-link::before {
     content: "";
     position: absolute;
     inset: 0;
@@ -72,7 +77,9 @@ html, body {
 #canvas-entry::before { animation: canvas-entry-glow 3s ease-in-out infinite; }
 
 #canvas-entry span,
-#canvas-home span {
+#canvas-home span,
+#canvas-snake-link span,
+#canvas-tetris-link span {
     color: var(--canvas-highlight-color);
     font-size: 30px;
     line-height: 1;
@@ -80,7 +87,48 @@ html, body {
 }
 
 #canvas-entry:hover::before,
-#canvas-home:hover::before { opacity: .2; animation: none; }
+#canvas-home:hover::before,
+#canvas-snake-link:hover::before,
+#canvas-tetris-link:hover::before { opacity: .2; animation: none; }
+
+#canvas-snake-link:hover span { transform: translate(3px, -3px); }
+#canvas-tetris-link:hover span { transform: translate(-3px, 3px); }
+#canvas-home:hover span { transform: translate(3px, 3px); }
+#canvas-world-ui > button span { transition: transform .2s ease !important; }
+
+#canvas-explore, #canvas-nav {
+    position: fixed;
+    bottom: max(20px, env(safe-area-inset-bottom));
+    border: 1px solid var(--canvas-axis-color);
+    background: var(--canvas-bg-color);
+    color: var(--homepage-text-color);
+    padding: 10px 14px;
+    pointer-events: auto;
+    font-size: 12px !important;
+}
+#canvas-explore { left: 20px; }
+#canvas-nav {
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    width: max-content;
+    max-width: calc(100vw - 24px);
+}
+#canvas-nav button {
+    border: 1px solid transparent;
+    background: transparent;
+    padding: 9px;
+    white-space: nowrap;
+    font-size: 12px;
+}
+#canvas-nav button:hover, #canvas-nav button[aria-pressed="true"] { border-color: var(--canvas-axis-color); }
+#canvas-nav > span { width: 100%; text-align: center; opacity: .6; font-size: 10px; }
+body.canvas-exploring #homepage-content { visibility: hidden; }
+body.canvas-exploring { overflow-y: hidden; touch-action: none; }
 
 @keyframes canvas-entry-glow {
     0%, 100% { opacity: .06; }
@@ -88,7 +136,6 @@ html, body {
 }
 
 #canvas-profile,
-#canvas-snake-controls,
 #canvas-tetris-controls {
     position: absolute;
     top: 0;
@@ -101,7 +148,7 @@ html, body {
 
 #canvas-profile {
     width: 500px;
-    height: 400px;
+    height: 450px;
     padding: 34px 36px 24px;
     display: flex;
     flex-direction: column;
@@ -109,7 +156,7 @@ html, body {
     background: color-mix(in srgb, var(--canvas-bg-color) 90%, transparent);
 }
 
-[data-profile-content] { flex: 1; min-height: 0; }
+[data-profile-content] { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 
 .canvas-profile-eyebrow {
     margin-bottom: 20px;
@@ -151,6 +198,8 @@ html, body {
     overflow-wrap: anywhere;
 }
 
+.canvas-profile-age { margin-top: 10px; font-size: 13px; line-height: 20px; opacity: .7; }
+
 .canvas-profile-bio {
     margin-top: 20px;
     max-height: 76px;
@@ -178,7 +227,9 @@ html, body {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    margin-top: 16px;
+    margin-top: auto;
+    padding-top: 16px;
+    flex-shrink: 0;
     max-height: 82px;
     overflow-y: auto;
 }
@@ -222,51 +273,11 @@ html, body {
 
 .canvas-region-links button:hover { color: var(--canvas-highlight-color); text-decoration: underline; }
 
-#canvas-snake-controls { width: 600px; min-height: 110px; padding: 16px 0 0; }
-
-#snake-seed-form { display: flex; align-items: center; gap: 8px; }
-#snake-seed-form label { font-size: 11px; white-space: nowrap; }
-
-#snake-seed {
-    width: 210px;
-    min-width: 0;
-    padding: 8px 10px;
-    border: 1px solid var(--canvas-axis-color);
-    border-radius: 0;
-    background: var(--canvas-bg-color);
-    font-size: 12px !important;
-    line-height: 18px;
-    user-select: text;
-    touch-action: auto;
-}
-
-#snake-seed-form button {
-    padding: 8px 12px;
-    border: 1px solid var(--canvas-axis-color);
-    border-radius: 0;
-    background: var(--canvas-bg-color);
-    font-size: 12px !important;
-    line-height: 18px;
-    white-space: nowrap;
-}
-
-#snake-seed-form button:hover { background: var(--canvas-line-color); }
-
-#snake-plan-status {
-    display: block;
-    min-height: 18px;
-    margin: 9px 0;
-    color: var(--homepage-text-color);
-    font-size: 11px;
-    line-height: 18px;
-    overflow-wrap: anywhere;
-    opacity: .7;
-}
-
 #canvas-tetris-controls { width: 500px; padding-top: 12px; }
 
 /* Compensate for the world camera fitting full boards on narrow screens. */
 @media (max-width: 600px) {
+    body:not(.canvas-exploring) #canvas-profile { width: calc(100vw - 48px); }
     #canvas-profile-title { font-size: 32px; line-height: 38px; }
     .canvas-profile-role { font-size: 16px; line-height: 22px; }
     .canvas-profile-bio { font-size: 19px; line-height: 28px; max-height: 84px; }
@@ -274,11 +285,14 @@ html, body {
     .canvas-profile-link { width: 52px; height: 52px; }
     .canvas-profile-link svg { width: 25px; height: 25px; }
     .canvas-region-links button { font-size: 18px !important; line-height: 24px; }
-    #snake-seed-form label { font-size: 18px; }
-    #snake-seed, #snake-seed-form button { font-size: 18px !important; line-height: 24px; padding: 12px; }
-    #snake-plan-status { font-size: 17px; line-height: 23px; min-height: 46px; }
+    .canvas-profile-age { font-size: 16px; line-height: 22px; }
+    body:not(.canvas-exploring) .canvas-profile-link { width: 44px; height: 44px; }
+    body:not(.canvas-exploring) .canvas-profile-link svg { width: 22px; height: 22px; }
+    body:not(.canvas-exploring) #canvas-profile > .canvas-region-links { gap: 8px 10px; }
+    body:not(.canvas-exploring) #canvas-profile > .canvas-region-links button { font-size: 14px !important; line-height: 22px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
     #canvas-entry::before { animation: none; opacity: .14; }
+    #canvas-world-ui > button span { transition: none !important; }
 }

@@ -10,6 +10,15 @@
             ['rect', { x: '3', y: '6', width: '18', height: '14', rx: '3' }],
             ['path', { d: 'm7 2 3 4m7-4-3 4M8 11v3m8-3v3m-7 3 3 1 3-1' }]
         ],
+        netease: [
+            ['path', { d: 'M16.5 4.2A9 9 0 1 0 21 12c0-2.8-1.7-5.2-4-5.2-2.8 0-4 2.5-4 5.2v2.3a3.1 3.1 0 1 1-3.1-3.1c1.8 0 3.1 1.3 3.1 3.1' }],
+            ['path', { d: 'M13 11.7V3l4-1v4' }]
+        ],
+        qq: [
+            ['path', { d: 'M7.5 11V7.5a4.5 4.5 0 0 1 9 0V11l2.7 4.5c.8 1.4-.3 2.3-1.7 1.5-.7 2.1-2.7 3.5-5.5 3.5S7.2 19.1 6.5 17c-1.4.8-2.5-.1-1.7-1.5L7.5 11Zm-.7 8.2L4.5 22h5l.8-1.6m6.9-1.2 2.3 2.8h-5l-.8-1.6' }],
+            ['path', { d: 'M7.5 11.5c2.8 1 6.2 1 9 0M10 9h4l-2 1.8Z' }],
+            ['path', { d: 'M10 6.5h.01M14 6.5h.01', 'stroke-width': '2.5' }]
+        ],
         mail: [
             ['rect', { x: '2', y: '4', width: '20', height: '16', rx: '2' }],
             ['path', { d: 'm3 6 9 7 9-7' }]
@@ -57,6 +66,34 @@
         return svg;
     }
 
+    const ageDateFormatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Shanghai', year: 'numeric', month: 'numeric', day: 'numeric'
+    });
+
+    function getAge(birthDate, now = new Date()) {
+        if (typeof birthDate !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) return null;
+        const birthday = new Date(`${birthDate}T00:00:00Z`);
+        const instant = new Date(now);
+        if (!Number.isFinite(birthday.getTime()) || !Number.isFinite(instant.getTime())
+            || birthday.toISOString().slice(0, 10) !== birthDate) return null;
+        const parts = {};
+        ageDateFormatter.formatToParts(instant).forEach(part => { if (part.type !== 'literal') parts[part.type] = Number(part.value); });
+        const [year, month, day] = birthDate.split('-').map(Number);
+        const beforeBirthday = parts.month < month || (parts.month === month && parts.day < day);
+        const age = parts.year - year - Number(beforeBirthday);
+        return age >= 0 ? age : null;
+    }
+
+    function updateAge(element, birthDate, now = new Date()) {
+        const node = element.querySelector('.canvas-profile-age');
+        const age = getAge(birthDate, now);
+        if (node) {
+            node.hidden = age === null;
+            node.textContent = age === null ? '' : `年龄 ${age} 岁`;
+        }
+        return age;
+    }
+
     function render(element, config = {}) {
         const document = element.ownerDocument;
         const content = element.querySelector('[data-profile-content]') || element;
@@ -91,6 +128,7 @@
         if (config.title) identity.appendChild(text('p', 'canvas-profile-role', config.title));
         heading.appendChild(identity);
         content.appendChild(heading);
+        if (config.birthDate) content.appendChild(text('p', 'canvas-profile-age', ''));
         if (config.bio) content.appendChild(text('p', 'canvas-profile-bio', config.bio));
         if (config.location) {
             const location = text('p', 'canvas-profile-location', '');
@@ -105,21 +143,21 @@
             const href = safeHref(item.url, document.baseURI);
             if (!href) continue;
             const anchor = document.createElement('a');
-            anchor.className = 'canvas-profile-link';
+            const iconName = Object.hasOwn(ICONS, item.icon) ? item.icon : 'link';
+            anchor.className = `canvas-profile-link ${iconName}`;
             anchor.href = href;
             const label = typeof item.label === 'string' && item.label.trim() ? item.label : '联系链接';
             anchor.title = label;
             anchor.setAttribute('aria-label', label);
-            if (/^https?:/.test(href)) {
-                anchor.target = '_blank';
-                anchor.rel = 'noopener noreferrer';
-            }
+            anchor.target = '_blank';
+            anchor.rel = 'noopener noreferrer';
             anchor.appendChild(icon(document, item.icon));
             links.appendChild(anchor);
         }
         if (links.childNodes.length) content.appendChild(links);
+        updateAge(element, config.birthDate);
     }
 
-    root.CanvasProfile = { render, safeHref };
+    root.CanvasProfile = { render, safeHref, getAge, updateAge };
     if (typeof module !== 'undefined' && module.exports) module.exports = root.CanvasProfile;
 })(typeof globalThis !== 'undefined' ? globalThis : window);

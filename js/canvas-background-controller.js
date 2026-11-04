@@ -11,14 +11,16 @@ class CanvasBackgroundController {
         };
         // Grid-cell bounds, independent of viewport size or camera position.
         this.regions = {
-            profile: { x: -12, y: -10, w: 10, h: 8 },
+            profile: { x: -12, y: -10, w: 10, h: 9 },
             snake: { x: 2, y: -16, w: 12, h: 12 },
             tetris: { x: -12, y: 2, w: 10, h: 20 },
-            profileView: { x: -12, y: -10, w: 12, h: 10 }
+            profileView: { x: -12, y: -10, w: 12, h: 10 },
+            overview: { x: -14, y: -18, w: 30, h: 42 }
         };
         this.snake = new CanvasGames.AutoSnake();
         this.tetris = new CanvasGames.AutoTetris();
         this.defaultView = true;
+        this.exploring = false;
         this.focusedView = 'default';
         this.planRequest = 0;
         this.listeners = [];
@@ -35,23 +37,18 @@ class CanvasBackgroundController {
     initialize() {
         this.entry = document.getElementById('canvas-entry');
         this.homeButton = document.getElementById('canvas-home');
+        this.snakeLink = document.getElementById('canvas-snake-link');
+        this.tetrisLink = document.getElementById('canvas-tetris-link');
+        this.exploreButton = document.getElementById('canvas-explore');
+        this.nav = document.getElementById('canvas-nav');
         this.profile = document.getElementById('canvas-profile');
         this.homepage = document.getElementById('homepage-content');
-        this.snakeControls = document.getElementById('canvas-snake-controls');
         this.tetrisControls = document.getElementById('canvas-tetris-controls');
         CanvasProfile.render(this.profile, window.PORTFOLIO_PROFILE);
         this.listen(this.entry, 'click', () => this.focusRegion('profile'));
+        this.listen(this.exploreButton, 'click', () => this.enterExploration());
         document.querySelectorAll('[data-canvas-view]').forEach(button => {
             this.listen(button, 'click', () => this.focusRegion(button.dataset.canvasView));
-        });
-        this.listen(document.getElementById('snake-seed-form'), 'submit', event => {
-            event.preventDefault();
-            this.planSnake(document.getElementById('snake-seed').value);
-        });
-        this.listen(document.getElementById('snake-new-seed'), 'click', () => {
-            const values = new Uint32Array(2);
-            crypto.getRandomValues(values);
-            this.planSnake([...values].map(value => value.toString(36)).join('-'));
         });
         this.listen(this.canvas, 'pointerdown', event => this.pointerDown(event));
         this.listen(this.canvas, 'pointermove', event => this.pointerMove(event));
@@ -60,7 +57,10 @@ class CanvasBackgroundController {
         this.listen(this.canvas, 'lostpointercapture', event => this.pointerUp(event, true));
         this.listen(this.canvas, 'pointerleave', () => { this.state.hasMouse = false; });
         this.listen(this.canvas, 'wheel', event => {
-            if (this.defaultView && !event.ctrlKey) return;
+            if (!this.exploring) {
+                if (event.ctrlKey) event.preventDefault();
+                return;
+            }
             event.preventDefault();
             this.camera = null;
             this.zoomAt(event.clientX, event.clientY, this.state.scale * Math.exp(-event.deltaY * 0.001));
@@ -69,41 +69,60 @@ class CanvasBackgroundController {
             if (event.target.closest('input, textarea, [contenteditable="true"]')) return;
             if (event.key === 'Escape') this.focusRegion('default');
         });
+        // Ctrl-wheel must not bypass the normal-view canvas zoom lock.
+        this.listen(window, 'wheel', event => {
+            if (event.ctrlKey) {
+                event.preventDefault();
+                if (this.exploring && event.target.closest?.('#canvas-profile')) {
+                    this.camera = null;
+                    this.zoomAt(event.clientX, event.clientY, this.state.scale * Math.exp(-event.deltaY * 0.001));
+                }
+            }
+        }, { passive: false });
         this.listen(window, 'resize', () => this.resize());
         this.themeManager.onThemeChange(this.onThemeChange);
         this.resize();
         this.running = true;
-        this.planSnake(window.PORTFOLIO_PROFILE?.snakeSeed || 'canvas-2026');
+        const controller = this;
+        this.snakeDebug = Object.freeze({
+            get seed() { return controller.snake.seed; },
+            newSeed: () => this.planSnake(),
+            restart: (seed = this.snake.seed) => this.planSnake(seed)
+        });
+        window.canvasSnakeDebug = this.snakeDebug;
+        console.info('[CanvasSnake] 控制台生成新种子：canvasSnakeDebug.newSeed()；复现：canvasSnakeDebug.restart(seed)');
+        this.planSnake();
         this.animationFrame = requestAnimationFrame(this.loop);
     }
 
     planSnake(rawSeed) {
-        const seed = String(rawSeed || 'canvas-2026').trim().slice(0, 80) || 'canvas-2026';
-        document.getElementById('snake-seed').value = seed;
+        if (!rawSeed || !String(rawSeed).trim()) {
+            const values = new Uint32Array(2);
+            crypto.getRandomValues(values);
+            rawSeed = [...values].map(value => value.toString(36)).join('-');
+        }
+        const seed = String(rawSeed).trim().slice(0, 80);
+        console.info(`[CanvasSnake] seed: ${seed}`);
         this.snakeWorker?.terminate();
         this.snake = new CanvasGames.AutoSnake({ seed });
         this.snakePlanning = true;
         const id = ++this.planRequest;
-        const status = document.getElementById('snake-plan-status');
-        status.textContent = '正在后台试算 8 条路线…';
         const fallback = () => {
             if (id !== this.planRequest) return;
             this.snakeWorker?.terminate();
             this.snakeWorker = null;
             this.snakePlanning = false;
-            status.textContent = '后台试算不可用 · 正在按种子实时安全寻路';
+            console.warn('[CanvasSnake] 后台计算不可用，改为实时安全寻路。');
         };
         try {
             this.snakeWorker = new Worker('js/canvas-snake-worker.js');
             this.snakeWorker.onmessage = event => {
                 const message = event.data;
                 if (id !== this.planRequest || message.id !== id || !this.running) return;
-                if (message.type === 'progress') {
-                    status.textContent = `已试算 ${message.completed} / ${message.total} 条${message.bestSteps ? ` · 当前最少 ${message.bestSteps} 步` : ''}`;
-                } else if (message.type === 'complete') {
+                if (message.type === 'complete') {
                     this.snake.applyPlan(message.plan);
                     this.snakePlanning = false;
-                    status.textContent = `${message.plan.candidates} 条获胜候选中最少 ${message.plan.steps} 步 · 同一种子可复现`;
+                    console.info(`[CanvasSnake] seed: ${seed} · ${message.plan.candidates} 条获胜候选中最少 ${message.plan.steps} 步`);
                     this.snakeWorker.terminate();
                     this.snakeWorker = null;
                 } else if (message.type === 'error') fallback();
@@ -111,7 +130,23 @@ class CanvasBackgroundController {
             this.snakeWorker.onerror = fallback;
             this.snakeWorker.postMessage({ id, seed });
         } catch (_) { fallback(); }
+        return seed;
     }
+
+    setExploration(enabled) {
+        this.exploring = enabled;
+        document.body.classList.toggle('canvas-exploring', enabled);
+        this.nav.hidden = !enabled;
+        this.exploreButton.hidden = enabled;
+    }
+
+    enterExploration() {
+        if (!this.exploring) this.savedScrollY = window.scrollY;
+        this.setExploration(true);
+        this.focusRegion('overview');
+    }
+
+    exitExploration() { this.focusRegion('default'); }
 
     resize() {
         const oldWidth = this.state.width, oldHeight = this.state.height;
@@ -147,10 +182,14 @@ class CanvasBackgroundController {
             if (this.canvas.hasPointerCapture(id)) this.canvas.releasePointerCapture(id);
         });
         if (name === 'home') name = 'default';
+        document.querySelectorAll('#canvas-nav [data-canvas-view]').forEach(button => {
+            button.setAttribute('aria-pressed', String(button.dataset.canvasView === name));
+        });
         if (name === 'default') {
+            this.setExploration(false);
             this.defaultView = true;
             this.focusedView = name;
-            this.moveCamera({ offsetX: 0, offsetY: 0, scale: 1 }, false);
+            this.moveCamera({ offsetX: 0, offsetY: 0, scale: 1 });
             window.scrollTo(0, this.savedScrollY || 0);
             return;
         }
@@ -163,14 +202,15 @@ class CanvasBackgroundController {
     }
 
     fitRegion(name, animate = true) {
-        const r = this.regions[name === 'profile' ? 'profileView' : name], top = 100;
-        const bottom = name === 'snake' ? 140 : 100;
+        const r = this.regions[name === 'profile' && this.exploring ? 'profileView' : name], top = 100;
+        const bottom = this.exploring ? 140 : 100;
         const availableWidth = Math.max(180, this.state.width - 48);
         const availableHeight = Math.max(180, this.state.height - top - bottom);
-        const scale = Math.min(name === 'profile' ? 1.2 : 1, availableWidth / (r.w * 50), availableHeight / ((r.h + 1) * 50));
+        const scale = this.exploring ? Math.min(name === 'profile' ? 1.2 : 1, availableWidth / (r.w * 50), availableHeight / ((r.h + 1) * 50)) : 1;
+        const regionWidth = !this.exploring && name === 'profile' ? Math.min(r.w * 50, availableWidth) : r.w * 50;
         const target = {
             scale,
-            offsetX: this.state.width / 2 - (r.x + r.w / 2) * 50 * scale,
+            offsetX: this.state.width / 2 - (r.x * 50 + regionWidth / 2) * scale,
             offsetY: top + availableHeight / 2 - (r.y + r.h / 2) * 50 * scale
         };
         this.moveCamera(target, animate);
@@ -185,6 +225,7 @@ class CanvasBackgroundController {
     }
 
     zoomAt(x, y, scale) {
+        if (!this.exploring) return false;
         const old = this.state.scale;
         this.defaultView = false;
         this.state.scale = Math.max(0.15, Math.min(2, scale));
@@ -192,11 +233,17 @@ class CanvasBackgroundController {
         this.state.offsetX = x - (x - this.state.offsetX) * factor;
         this.state.offsetY = y - (y - this.state.offsetY) * factor;
         this.focusedView = null;
+        return true;
     }
 
     pointerDown(event) {
         if (event.button !== 0 && event.button !== 1) return;
         event.preventDefault();
+        // Finish a mode-exit transition before an input can interrupt its scale reset.
+        if (!this.exploring && this.state.scale !== 1) {
+            if (this.camera) Object.assign(this.state, this.camera.target);
+            else this.state.scale = 1;
+        }
         this.camera = null;
         this.canvas.setPointerCapture(event.pointerId);
         this.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
@@ -223,9 +270,13 @@ class CanvasBackgroundController {
         if (this.pointers.size >= 2) {
             const next = this.pinchMetrics();
             if (this.pinch && this.pinch.distance > 0) {
-                this.zoomAt(this.pinch.x, this.pinch.y, this.state.scale * next.distance / this.pinch.distance);
+                if (this.exploring) this.zoomAt(this.pinch.x, this.pinch.y, this.state.scale * next.distance / this.pinch.distance);
                 this.state.offsetX += next.x - this.pinch.x;
                 this.state.offsetY += next.y - this.pinch.y;
+                if (next.x !== this.pinch.x || next.y !== this.pinch.y) {
+                    this.defaultView = false;
+                    this.focusedView = null;
+                }
             }
             this.pinch = next;
             return;
@@ -266,6 +317,8 @@ class CanvasBackgroundController {
         const { gridX, gridY } = this.getGridFromScreen(x, y);
         if (gridX === 0 && gridY === 0) { this.focusRegion('profile'); return; }
         if (gridX === -1 && gridY === -1) { this.focusRegion('default'); return; }
+        if (gridX === 0 && gridY === -1) { this.focusRegion('snake'); return; }
+        if (gridX === -1 && gridY === 0) { this.focusRegion('tetris'); return; }
         const hit = this.state.erasableBlocks.find(block => block.gridX === gridX && block.gridY === gridY && !block.isClicked);
         if (hit) {
             hit.isClicked = true;
@@ -277,7 +330,7 @@ class CanvasBackgroundController {
     generateInteractiveBlocks(x, y) {
         if (this.state.erasableBlocks.length >= this.state.maxErasableBlocks || Math.random() >= 0.02) return;
         const { gridX, gridY } = this.getGridFromScreen(x, y);
-        if ((gridX === 0 && gridY === 0) || (gridX === -1 && gridY === -1)) return;
+        if ((gridX === 0 || gridX === -1) && (gridY === 0 || gridY === -1)) return;
         if (['profile', 'snake', 'tetris'].some(name => {
             const r = this.regions[name];
             return gridX >= r.x - 1 && gridX < r.x + r.w + 1 && gridY >= r.y - 1 && gridY < r.y + r.h + 1;
@@ -317,7 +370,7 @@ class CanvasBackgroundController {
         });
         ctx.globalAlpha = 1;
         this.drawRegion('profile', '01 / 关于我', '关于我 · 媒体与联系', theme);
-        this.drawRegion('snake', '02 / 自动贪吃蛇', `12 × 12 · ${this.snake.score} 颗 · ${this.snake.steps || 0} 步${this.snake.won ? ' · 已填满，即将重启' : ''}`, theme);
+        this.drawRegion('snake', '02 / 自动贪吃蛇', '', theme);
         this.drawRegion('tetris', '03 / 自动俄罗斯方块', `10 × 20   ·   已消除 ${this.tetris.lines} 行`, theme);
         const snake = this.regions.snake;
         this.snake.body.forEach((cell, index) => {
@@ -375,9 +428,6 @@ class CanvasBackgroundController {
 
     syncWorldElements() {
         const { scale, offsetX, offsetY, width, height } = this.state;
-        this.entry.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
-        this.homeButton.style.transform = `translate(${offsetX - 50 * scale}px, ${offsetY - 50 * scale}px) scale(${scale})`;
-        this.homeButton.hidden = this.defaultView || offsetX <= 0 || offsetY <= 0 || offsetX - 50 * scale >= width || offsetY - 50 * scale >= height;
         this.homepage.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
         const r = this.regions.profile;
         const x = offsetX + r.x * 50 * scale, y = offsetY + r.y * 50 * scale;
@@ -385,12 +435,13 @@ class CanvasBackgroundController {
         this.profile.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
         const place = (element, gridX, gridY, w, h) => {
             const sx = offsetX + gridX * 50 * scale, sy = offsetY + gridY * 50 * scale;
-            element.hidden = sx + w * scale < 0 || sx > width || sy + h * scale < 0 || sy > height;
+            element.hidden = sx + w * scale <= 0 || sx >= width || sy + h * scale <= 0 || sy >= height;
             element.style.transform = `translate(${sx}px, ${sy}px) scale(${scale})`;
         };
-        const snake = this.regions.snake;
-        place(this.snakeControls, snake.x, snake.y + snake.h + 0.3, 600, 165);
-        if (this.defaultView) this.snakeControls.hidden = true;
+        place(this.entry, 0, 0, 50, 50);
+        place(this.homeButton, -1, -1, 50, 50);
+        place(this.snakeLink, 0, -1, 50, 50);
+        place(this.tetrisLink, -1, 0, 50, 50);
         place(this.tetrisControls, -12, 22.3, 500, 50);
     }
 
@@ -401,7 +452,14 @@ class CanvasBackgroundController {
         this.state.fps = dt ? 1 / dt : 60;
         this.state.frameCount++;
         if (!document.hidden) {
-            if (!this.snakePlanning) this.snake.update(dt);
+            if (!this.snakePlanning) {
+                if (this.snake.won && this.snake.restartIn <= dt) this.planSnake();
+                else this.snake.update(dt);
+            }
+            if (!this.nextAgeCheck || time >= this.nextAgeCheck) {
+                CanvasProfile.updateAge?.(this.profile, window.PORTFOLIO_PROFILE?.birthDate);
+                this.nextAgeCheck = time + 60000;
+            }
             this.tetris.update(dt);
             if (this.camera) {
                 const t = Math.min(1, (time - this.camera.start) / 550), eased = 1 - Math.pow(1 - t, 3);
@@ -428,6 +486,7 @@ class CanvasBackgroundController {
         cancelAnimationFrame(this.animationFrame);
         this.planRequest++;
         this.snakeWorker?.terminate();
+        if (window.canvasSnakeDebug === this.snakeDebug) delete window.canvasSnakeDebug;
         this.listeners.forEach(remove => remove());
         this.themeManager.offThemeChange(this.onThemeChange);
     }

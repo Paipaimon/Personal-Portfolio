@@ -88,6 +88,66 @@ test('shortest safe food path reaches a reachable apple in its Manhattan lower-b
     assert.equal(game.steps, lowerBound);
 });
 
+test('the opening snake reaches every possible first apple by a shortest path, including BFS ties', () => {
+    for (let foodId = 4; foodId < 144; foodId++) {
+        const game = new AutoSnake({ seed: 'opening-optimality' });
+        game.food = game.cell(foodId);
+        const head = game.body[0];
+        const shortest = Math.abs(head.x - game.food.x) + Math.abs(head.y - game.food.y);
+        while (!game.score && game.steps <= shortest) {
+            game.step();
+            assertSnakeLegal(game);
+        }
+        assert.equal(game.score, 1, `first apple ${foodId} is reached without a detour`);
+        assert.equal(game.steps, shortest, 'planning starts with the initial apple, rather than circling first');
+    }
+});
+
+test('adaptive food paths leave the original fixed circuit while preserving a legal live snake', () => {
+    const game = new AutoSnake({ seed: 'adaptive-path' });
+    const originalOrder = game.order.slice();
+    let leftOriginalCircuit = false;
+    for (let step = 0; step < 800; step++) {
+        game.step();
+        assertSnakeLegal(game);
+        let span = 0;
+        for (let i = game.body.length - 1; i > 0; i--) {
+            span += (originalOrder[game.id(game.body[i - 1])] - originalOrder[game.id(game.body[i])] + 144) % 144;
+        }
+        if (span >= 144) leftOriginalCircuit = true;
+    }
+    assert.ok(leftOriginalCircuit, 'the live body is no longer constrained to the initial circuit order');
+    assert.ok(game.rewires > 0);
+    assert.ok(game.directPaths > 0);
+    assert.ok(game.score > 20, 'adaptive motion continues eating rather than only changing a debug route');
+});
+
+test('a direct food shortcut is rejected if its grown virtual body closes the only escape', () => {
+    const game = new AutoSnake({ seed: 'virtual-tail' });
+    game.body = [[2, 2], [2, 1], [1, 1], [0, 1], [0, 2], [0, 3], [1, 3], [2, 3], [3, 3], [3, 4]]
+        .map(([x, y]) => ({ x, y }));
+    game.food = { x: 1, y: 2 };
+    const before = JSON.stringify(game.body);
+    assert.equal(game.escapesAfterFood([game.id(game.food)]), false, 'eating inside the enclosed pocket would trap the head');
+    game.food = { x: 3, y: 2 };
+    assert.equal(game.escapesAfterFood([game.id(game.food)]), true, 'an equally short route into open space retains a path to the tail');
+    assert.equal(JSON.stringify(game.body), before, 'planning never mutates the real snake');
+});
+
+test('adaptive live routing fills the board for diverse random seeds without a replay plan', () => {
+    for (const seed of ['adaptive-0', 'adaptive-1', 'adaptive-2', 'adaptive-3', '随机路线', '🌱', 'negative-1', 'longer-seed-2026']) {
+        const game = new AutoSnake({ seed });
+        while (!game.won && game.steps < 21000) {
+            game.step();
+            assertSnakeLegal(game);
+        }
+        assert.equal(game.plan, null, 'the no-Worker fallback computes decisions from live state');
+        assert.ok(game.won, `seed ${seed} eventually fills the board`);
+        assert.equal(game.score, 140);
+        assert.ok(game.rewires > 0, 'the safety circuit changes during the round');
+    }
+});
+
 test('seed search chooses the fewest-step winning candidate and its replay fills the board legally', () => {
     for (const seed of ['canvas-2026', '42', '8103']) {
         const progress = [];
