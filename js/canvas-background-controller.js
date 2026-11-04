@@ -1,27 +1,26 @@
-/** The grid, profile, games and drawing share a single world transform. */
+/** The homepage, profile and automatic games share one grid coordinate system. */
 class CanvasBackgroundController {
     constructor(canvas, themeManager) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
         this.themeManager = themeManager;
         this.state = {
-            width: 0, height: 0, offsetX: 50, offsetY: 50, scale: 1,
+            width: 0, height: 0, offsetX: 0, offsetY: 0, scale: 1,
             isDragging: false, hasMouse: false, hoverX: 0, hoverY: 0,
             erasableBlocks: [], maxErasableBlocks: 100, frameCount: 0, fps: 60
         };
         // Grid-cell bounds, independent of viewport size or camera position.
         this.regions = {
             profile: { x: -12, y: -10, w: 10, h: 8 },
-            snake: { x: 2, y: -14, w: 12, h: 12 },
+            snake: { x: 2, y: -16, w: 12, h: 12 },
             tetris: { x: -12, y: 2, w: 10, h: 20 },
-            paint: { x: 2, y: 2, w: 12, h: 12 },
-            overview: { x: -14, y: -16, w: 30, h: 40 }
+            profileView: { x: -12, y: -10, w: 12, h: 10 }
         };
         this.snake = new CanvasGames.AutoSnake();
         this.tetris = new CanvasGames.AutoTetris();
-        this.paint = new Map();
-        this.undoStack = [];
-        this.tool = 'brush';
+        this.defaultView = true;
+        this.focusedView = 'default';
+        this.planRequest = 0;
         this.listeners = [];
         this.pointers = new Map();
         this.onThemeChange = () => this.draw();
@@ -35,21 +34,24 @@ class CanvasBackgroundController {
 
     initialize() {
         this.entry = document.getElementById('canvas-entry');
+        this.homeButton = document.getElementById('canvas-home');
         this.profile = document.getElementById('canvas-profile');
-        this.nav = document.getElementById('canvas-nav');
-        this.hint = document.getElementById('canvas-hint');
-        this.paintTools = document.getElementById('paint-tools');
-        this.form = document.getElementById('profile-form');
-        this.setupProfile();
+        this.homepage = document.getElementById('homepage-content');
+        this.snakeControls = document.getElementById('canvas-snake-controls');
+        this.tetrisControls = document.getElementById('canvas-tetris-controls');
+        CanvasProfile.render(this.profile, window.PORTFOLIO_PROFILE);
         this.listen(this.entry, 'click', () => this.focusRegion('profile'));
         document.querySelectorAll('[data-canvas-view]').forEach(button => {
             this.listen(button, 'click', () => this.focusRegion(button.dataset.canvasView));
         });
-        document.querySelectorAll('[data-paint-tool]').forEach(button => {
-            this.listen(button, 'click', () => this.setTool(button.dataset.paintTool));
+        this.listen(document.getElementById('snake-seed-form'), 'submit', event => {
+            event.preventDefault();
+            this.planSnake(document.getElementById('snake-seed').value);
         });
-        document.querySelectorAll('[data-paint-action]').forEach(button => {
-            this.listen(button, 'click', () => this.paintAction(button.dataset.paintAction));
+        this.listen(document.getElementById('snake-new-seed'), 'click', () => {
+            const values = new Uint32Array(2);
+            crypto.getRandomValues(values);
+            this.planSnake([...values].map(value => value.toString(36)).join('-'));
         });
         this.listen(this.canvas, 'pointerdown', event => this.pointerDown(event));
         this.listen(this.canvas, 'pointermove', event => this.pointerMove(event));
@@ -58,45 +60,57 @@ class CanvasBackgroundController {
         this.listen(this.canvas, 'lostpointercapture', event => this.pointerUp(event, true));
         this.listen(this.canvas, 'pointerleave', () => { this.state.hasMouse = false; });
         this.listen(this.canvas, 'wheel', event => {
-            if (!this.exploring && !event.ctrlKey) return;
+            if (this.defaultView && !event.ctrlKey) return;
             event.preventDefault();
             this.camera = null;
             this.zoomAt(event.clientX, event.clientY, this.state.scale * Math.exp(-event.deltaY * 0.001));
         }, { passive: false });
         this.listen(window, 'keydown', event => {
             if (event.target.closest('input, textarea, [contenteditable="true"]')) return;
-            if (event.key === 'Escape' && this.exploring) this.focusRegion('home');
-            if (this.exploring && (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
-                event.preventDefault();
-                this.paintAction('undo');
-            }
+            if (event.key === 'Escape') this.focusRegion('default');
         });
         this.listen(window, 'resize', () => this.resize());
         this.themeManager.onThemeChange(this.onThemeChange);
-        this.setTool('brush');
         this.resize();
         this.running = true;
+        this.planSnake(window.PORTFOLIO_PROFILE?.snakeSeed || 'canvas-2026');
         this.animationFrame = requestAnimationFrame(this.loop);
     }
 
-    setupProfile() {
-        const defaults = { name: 'Jlands', bio: '探索创意与技术的结合', location: '中国', contact: '' };
-        let saved = {};
-        try { saved = JSON.parse(localStorage.getItem('portfolio-canvas-profile')) || {}; } catch (_) { /* Use defaults. */ }
-        for (const key of Object.keys(defaults)) {
-            const input = this.form.elements.namedItem(key);
-            input.value = (typeof saved[key] === 'string' ? saved[key] : defaults[key]).slice(0, input.maxLength);
-        }
-        this.listen(this.form, 'submit', event => {
-            event.preventDefault();
-            const info = {};
-            for (const key of Object.keys(defaults)) info[key] = this.form.elements.namedItem(key).value.trim();
-            const status = document.getElementById('profile-status');
-            try {
-                localStorage.setItem('portfolio-canvas-profile', JSON.stringify(info));
-                status.textContent = '已保存 · 仅在此浏览器中可见';
-            } catch (_) { status.textContent = '浏览器暂时无法保存；可以继续编辑。'; }
-        });
+    planSnake(rawSeed) {
+        const seed = String(rawSeed || 'canvas-2026').trim().slice(0, 80) || 'canvas-2026';
+        document.getElementById('snake-seed').value = seed;
+        this.snakeWorker?.terminate();
+        this.snake = new CanvasGames.AutoSnake({ seed });
+        this.snakePlanning = true;
+        const id = ++this.planRequest;
+        const status = document.getElementById('snake-plan-status');
+        status.textContent = '正在后台试算 8 条路线…';
+        const fallback = () => {
+            if (id !== this.planRequest) return;
+            this.snakeWorker?.terminate();
+            this.snakeWorker = null;
+            this.snakePlanning = false;
+            status.textContent = '后台试算不可用 · 正在按种子实时安全寻路';
+        };
+        try {
+            this.snakeWorker = new Worker('js/canvas-snake-worker.js');
+            this.snakeWorker.onmessage = event => {
+                const message = event.data;
+                if (id !== this.planRequest || message.id !== id || !this.running) return;
+                if (message.type === 'progress') {
+                    status.textContent = `已试算 ${message.completed} / ${message.total} 条${message.bestSteps ? ` · 当前最少 ${message.bestSteps} 步` : ''}`;
+                } else if (message.type === 'complete') {
+                    this.snake.applyPlan(message.plan);
+                    this.snakePlanning = false;
+                    status.textContent = `${message.plan.candidates} 条获胜候选中最少 ${message.plan.steps} 步 · 同一种子可复现`;
+                    this.snakeWorker.terminate();
+                    this.snakeWorker = null;
+                } else if (message.type === 'error') fallback();
+            };
+            this.snakeWorker.onerror = fallback;
+            this.snakeWorker.postMessage({ id, seed });
+        } catch (_) { fallback(); }
     }
 
     resize() {
@@ -109,7 +123,7 @@ class CanvasBackgroundController {
         this.canvas.style.width = `${this.state.width}px`;
         this.canvas.style.height = `${this.state.height}px`;
         this.ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-        if (this.exploring && oldWidth) {
+        if (!this.defaultView && oldWidth) {
             this.state.offsetX += (this.state.width - oldWidth) / 2;
             this.state.offsetY += (this.state.height - oldHeight) / 2;
             this.camera = null;
@@ -124,7 +138,6 @@ class CanvasBackgroundController {
     }
 
     focusRegion(name) {
-        this.finishStroke();
         this.gesture = null;
         this.pinch = null;
         this.state.isDragging = this.state.hasMouse = false;
@@ -133,36 +146,25 @@ class CanvasBackgroundController {
         captured.forEach(id => {
             if (this.canvas.hasPointerCapture(id)) this.canvas.releasePointerCapture(id);
         });
-        if (name === 'home') {
-            this.exploring = false;
-            this.focusedView = null;
-            document.body.classList.remove('canvas-exploring');
-            this.nav.hidden = this.hint.hidden = this.paintTools.hidden = true;
-            document.getElementById('canvas-explore').hidden = false;
-            this.camera = null;
-            Object.assign(this.state, { offsetX: 50, offsetY: 50, scale: 1 });
+        if (name === 'home') name = 'default';
+        if (name === 'default') {
+            this.defaultView = true;
+            this.focusedView = name;
+            this.moveCamera({ offsetX: 0, offsetY: 0, scale: 1 }, false);
             window.scrollTo(0, this.savedScrollY || 0);
-            this.draw();
             return;
         }
         if (!this.regions[name]) return;
-        if (!this.exploring) this.savedScrollY = window.scrollY;
-        this.exploring = true;
+        if (this.defaultView) this.savedScrollY = window.scrollY;
+        this.defaultView = false;
         this.focusedView = name;
-        document.body.classList.add('canvas-exploring');
-        this.nav.hidden = this.hint.hidden = false;
-        this.paintTools.hidden = name !== 'paint' && name !== 'overview';
-        document.getElementById('canvas-explore').hidden = true;
-        this.hint.textContent = name === 'paint'
-            ? '右下绘画 · 按住涂画 / 橡皮擦 · 平移工具或空白处拖动画布 · 滚轮 / 双指缩放'
-            : '四个区域固定在网格上 · 拖动平移 · 滚轮 / 双指缩放 · Esc 返回首页';
-        document.querySelectorAll('#canvas-nav [data-canvas-view]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.canvasView === name)));
+        window.scrollTo(0, 0);
         this.fitRegion(name);
     }
 
     fitRegion(name, animate = true) {
-        const r = this.regions[name], top = 100;
-        const bottom = this.state.width < 600 ? 160 : 110;
+        const r = this.regions[name === 'profile' ? 'profileView' : name], top = 100;
+        const bottom = name === 'snake' ? 140 : 100;
         const availableWidth = Math.max(180, this.state.width - 48);
         const availableHeight = Math.max(180, this.state.height - top - bottom);
         const scale = Math.min(name === 'profile' ? 1.2 : 1, availableWidth / (r.w * 50), availableHeight / ((r.h + 1) * 50));
@@ -171,6 +173,10 @@ class CanvasBackgroundController {
             offsetX: this.state.width / 2 - (r.x + r.w / 2) * 50 * scale,
             offsetY: top + availableHeight / 2 - (r.y + r.h / 2) * 50 * scale
         };
+        this.moveCamera(target, animate);
+    }
+
+    moveCamera(target, animate = true) {
         if (!animate || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
             Object.assign(this.state, target);
             this.camera = null;
@@ -180,6 +186,7 @@ class CanvasBackgroundController {
 
     zoomAt(x, y, scale) {
         const old = this.state.scale;
+        this.defaultView = false;
         this.state.scale = Math.max(0.15, Math.min(2, scale));
         const factor = this.state.scale / old;
         this.state.offsetX = x - (x - this.state.offsetX) * factor;
@@ -189,25 +196,18 @@ class CanvasBackgroundController {
 
     pointerDown(event) {
         if (event.button !== 0 && event.button !== 1) return;
+        event.preventDefault();
         this.camera = null;
         this.canvas.setPointerCapture(event.pointerId);
         this.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
         if (this.pointers.size === 2) {
-            this.finishStroke();
             this.gesture = null;
             this.pinch = this.pinchMetrics();
             return;
         }
         if (this.pointers.size > 2) return;
-        const cell = this.getGridFromScreen(event.clientX, event.clientY);
-        const painting = this.exploring && this.tool !== 'pan' && event.button === 0 && this.isPaintCell(cell.gridX, cell.gridY);
-        this.gesture = { x: event.clientX, y: event.clientY, lastX: event.clientX, lastY: event.clientY, moved: false, painting };
-        this.state.isDragging = !painting;
-        if (painting) {
-            this.stroke = new Map();
-            this.paintCell(cell.gridX, cell.gridY);
-            this.lastPaintCell = cell;
-        }
+        this.gesture = { x: event.clientX, y: event.clientY, lastX: event.clientX, lastY: event.clientY, moved: false };
+        this.state.isDragging = true;
     }
 
     pinchMetrics() {
@@ -233,11 +233,8 @@ class CanvasBackgroundController {
         const g = this.gesture;
         if (g && this.pointers.has(event.pointerId)) {
             if (Math.hypot(event.clientX - g.x, event.clientY - g.y) > 4) g.moved = true;
-            if (g.painting) {
-                const cell = this.getGridFromScreen(event.clientX, event.clientY);
-                this.paintLine(this.lastPaintCell, cell);
-                this.lastPaintCell = cell;
-            } else if (g.moved) {
+            if (g.moved) {
+                this.defaultView = false;
                 this.state.offsetX += event.clientX - g.lastX;
                 this.state.offsetY += event.clientY - g.lastY;
                 this.focusedView = null;
@@ -245,16 +242,14 @@ class CanvasBackgroundController {
             g.lastX = event.clientX;
             g.lastY = event.clientY;
         } else if (!this.pointers.size && event.target === this.canvas) this.generateInteractiveBlocks(event.clientX, event.clientY);
-        const cell = this.getGridFromScreen(event.clientX, event.clientY);
-        this.canvas.style.cursor = g ? (g.painting ? 'crosshair' : 'grabbing') : this.exploring && this.tool !== 'pan' && this.isPaintCell(cell.gridX, cell.gridY) ? 'crosshair' : 'grab';
+        this.canvas.style.cursor = g ? 'grabbing' : 'grab';
     }
 
     pointerUp(event, cancelled = false) {
         if (!this.pointers.has(event.pointerId)) return;
         const g = this.gesture;
-        if (!cancelled && g && !g.moved && !g.painting) this.clickAt(event.clientX, event.clientY);
+        if (!cancelled && g && !g.moved) this.clickAt(event.clientX, event.clientY);
         this.pointers.delete(event.pointerId);
-        this.finishStroke();
         this.gesture = null;
         this.pinch = null;
         this.state.isDragging = false;
@@ -262,7 +257,7 @@ class CanvasBackgroundController {
         // After a pinch, the remaining finger continues panning without a jump.
         if (this.pointers.size === 1) {
             const remaining = [...this.pointers.values()][0];
-            this.gesture = { x: remaining.x, y: remaining.y, lastX: remaining.x, lastY: remaining.y, moved: true, painting: false };
+            this.gesture = { x: remaining.x, y: remaining.y, lastX: remaining.x, lastY: remaining.y, moved: true };
             this.state.isDragging = true;
         }
     }
@@ -270,6 +265,7 @@ class CanvasBackgroundController {
     clickAt(x, y) {
         const { gridX, gridY } = this.getGridFromScreen(x, y);
         if (gridX === 0 && gridY === 0) { this.focusRegion('profile'); return; }
+        if (gridX === -1 && gridY === -1) { this.focusRegion('default'); return; }
         const hit = this.state.erasableBlocks.find(block => block.gridX === gridX && block.gridY === gridY && !block.isClicked);
         if (hit) {
             hit.isClicked = true;
@@ -278,58 +274,10 @@ class CanvasBackgroundController {
         }
     }
 
-    isPaintCell(x, y) { return x >= 0 && y >= 0 && !(x === 0 && y === 0); }
-    setTool(tool) {
-        this.finishStroke();
-        if (this.gesture?.painting) this.gesture = null;
-        this.tool = tool;
-        document.querySelectorAll('[data-paint-tool]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.paintTool === tool)));
-    }
-    paintCell(x, y) {
-        if (!this.isPaintCell(x, y)) return;
-        const key = `${x},${y}`;
-        if (!this.stroke.has(key)) this.stroke.set(key, this.paint.has(key));
-        if (this.tool === 'erase') this.paint.delete(key);
-        else this.paint.set(key, true);
-    }
-    paintLine(from, to) {
-        // Fill skipped cells during fast strokes with Bresenham's algorithm.
-        let x = from.gridX, y = from.gridY;
-        const dx = Math.abs(to.gridX - x), dy = -Math.abs(to.gridY - y);
-        const sx = x < to.gridX ? 1 : -1, sy = y < to.gridY ? 1 : -1;
-        let error = dx + dy;
-        while (true) {
-            this.paintCell(x, y);
-            if (x === to.gridX && y === to.gridY) break;
-            const twice = error * 2;
-            if (twice >= dy) { error += dy; x += sx; }
-            if (twice <= dx) { error += dx; y += sy; }
-        }
-    }
-    finishStroke() {
-        if (this.stroke && this.stroke.size) {
-            this.undoStack.push(this.stroke);
-            if (this.undoStack.length > 50) this.undoStack.shift();
-        }
-        this.stroke = null;
-    }
-    paintAction(action) {
-        this.finishStroke();
-        if (this.gesture?.painting) this.gesture = null;
-        if (action === 'clear' && this.paint.size) {
-            this.undoStack.push(new Map([...this.paint.keys()].map(key => [key, true])));
-            this.paint.clear();
-        } else if (action === 'undo') {
-            const previous = this.undoStack.pop();
-            if (previous) previous.forEach((exists, key) => exists ? this.paint.set(key, true) : this.paint.delete(key));
-        }
-        this.draw();
-    }
-
     generateInteractiveBlocks(x, y) {
         if (this.state.erasableBlocks.length >= this.state.maxErasableBlocks || Math.random() >= 0.02) return;
         const { gridX, gridY } = this.getGridFromScreen(x, y);
-        if (gridX >= 0 && gridY >= 0) return;
+        if ((gridX === 0 && gridY === 0) || (gridX === -1 && gridY === -1)) return;
         if (['profile', 'snake', 'tetris'].some(name => {
             const r = this.regions[name];
             return gridX >= r.x - 1 && gridX < r.x + r.w + 1 && gridY >= r.y - 1 && gridY < r.y + r.h + 1;
@@ -352,20 +300,15 @@ class CanvasBackgroundController {
         const left = -offsetX / scale, top = -offsetY / scale;
         ctx.lineWidth = 1 / scale;
         for (let x = Math.floor(left / 50); x <= (left + width / scale) / 50; x++) {
+            if (x === 0 && this.defaultView) continue;
             ctx.strokeStyle = x === 0 ? c.axisColor : c.lineColor;
             ctx.beginPath(); ctx.moveTo(x * 50, top); ctx.lineTo(x * 50, top + height / scale); ctx.stroke();
         }
         for (let y = Math.floor(top / 50); y <= (top + height / scale) / 50; y++) {
+            if (y === 0 && this.defaultView) continue;
             ctx.strokeStyle = y === 0 ? c.axisColor : c.lineColor;
             ctx.beginPath(); ctx.moveTo(left, y * 50); ctx.lineTo(left + width / scale, y * 50); ctx.stroke();
         }
-        ctx.fillStyle = c.highlightColor;
-        ctx.globalAlpha = 0.65;
-        this.paint.forEach((_, key) => {
-            const [x, y] = key.split(',').map(Number);
-            if (x * 50 > left - 50 && x * 50 < left + width / scale && y * 50 > top - 50 && y * 50 < top + height / scale) ctx.fillRect(x * 50 + 2, y * 50 + 2, 46, 46);
-        });
-        ctx.globalAlpha = 1;
         this.state.erasableBlocks.forEach(block => {
             ctx.fillStyle = block.blockColor;
             ctx.globalAlpha = 1 - block.fadeProgress;
@@ -373,10 +316,9 @@ class CanvasBackgroundController {
             ctx.fillRect(block.gridX * 50 + inset, block.gridY * 50 + inset, 50 - inset * 2, 50 - inset * 2);
         });
         ctx.globalAlpha = 1;
-        this.drawRegion('profile', '01 / 关于我', '编辑信息 · 留下此刻的自己', theme);
-        this.drawRegion('snake', '02 / 自动贪吃蛇', `12 × 12   ·   已吃到 ${this.snake.score} 颗${this.snake.won ? ' · 已填满，即将重启' : ''}`, theme);
+        this.drawRegion('profile', '01 / 关于我', '关于我 · 媒体与联系', theme);
+        this.drawRegion('snake', '02 / 自动贪吃蛇', `12 × 12 · ${this.snake.score} 颗 · ${this.snake.steps || 0} 步${this.snake.won ? ' · 已填满，即将重启' : ''}`, theme);
         this.drawRegion('tetris', '03 / 自动俄罗斯方块', `10 × 20   ·   已消除 ${this.tetris.lines} 行`, theme);
-        this.drawRegion('paint', '04 / 自由绘画', '右下象限都是你的画布', theme);
         const snake = this.regions.snake;
         this.snake.body.forEach((cell, index) => {
             ctx.fillStyle = c.highlightColor;
@@ -434,10 +376,22 @@ class CanvasBackgroundController {
     syncWorldElements() {
         const { scale, offsetX, offsetY, width, height } = this.state;
         this.entry.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+        this.homeButton.style.transform = `translate(${offsetX - 50 * scale}px, ${offsetY - 50 * scale}px) scale(${scale})`;
+        this.homeButton.hidden = this.defaultView || offsetX <= 0 || offsetY <= 0 || offsetX - 50 * scale >= width || offsetY - 50 * scale >= height;
+        this.homepage.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
         const r = this.regions.profile;
         const x = offsetX + r.x * 50 * scale, y = offsetY + r.y * 50 * scale;
         this.profile.hidden = x + r.w * 50 * scale < 0 || x > width || y + r.h * 50 * scale < 0 || y > height;
         this.profile.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
+        const place = (element, gridX, gridY, w, h) => {
+            const sx = offsetX + gridX * 50 * scale, sy = offsetY + gridY * 50 * scale;
+            element.hidden = sx + w * scale < 0 || sx > width || sy + h * scale < 0 || sy > height;
+            element.style.transform = `translate(${sx}px, ${sy}px) scale(${scale})`;
+        };
+        const snake = this.regions.snake;
+        place(this.snakeControls, snake.x, snake.y + snake.h + 0.3, 600, 165);
+        if (this.defaultView) this.snakeControls.hidden = true;
+        place(this.tetrisControls, -12, 22.3, 500, 50);
     }
 
     loop(time) {
@@ -447,7 +401,7 @@ class CanvasBackgroundController {
         this.state.fps = dt ? 1 / dt : 60;
         this.state.frameCount++;
         if (!document.hidden) {
-            this.snake.update(dt);
+            if (!this.snakePlanning) this.snake.update(dt);
             this.tetris.update(dt);
             if (this.camera) {
                 const t = Math.min(1, (time - this.camera.start) / 550), eased = 1 - Math.pow(1 - t, 3);
@@ -472,6 +426,8 @@ class CanvasBackgroundController {
     destroy() {
         this.running = false;
         cancelAnimationFrame(this.animationFrame);
+        this.planRequest++;
+        this.snakeWorker?.terminate();
         this.listeners.forEach(remove => remove());
         this.themeManager.offThemeChange(this.onThemeChange);
     }

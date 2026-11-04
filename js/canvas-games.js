@@ -2,14 +2,27 @@
 (function (root) {
     'use strict';
 
+    function seededRandom(seed) {
+        let value = 2166136261;
+        for (const character of String(seed)) value = Math.imul(value ^ character.codePointAt(0), 16777619) >>> 0;
+        return () => {
+            value = (value + 0x6D2B79F5) >>> 0;
+            let mixed = Math.imul(value ^ (value >>> 15), value | 1);
+            mixed ^= mixed + Math.imul(mixed ^ (mixed >>> 7), mixed | 61);
+            return ((mixed ^ (mixed >>> 14)) >>> 0) / 4294967296;
+        };
+    }
+
     class AutoSnake {
-        constructor({ random = Math.random } = {}) {
-            this.random = random;
+        constructor({ seed = 'canvas-2026', variant = 0, random = null } = {}) {
+            this.seed = String(seed).slice(0, 80);
+            this.variant = variant;
+            this.randomOverride = random;
             this.size = 12;
             this.rounds = 0;
-            this.interval = 0.08;
-            // A closed route visits every cell once. Following it leaves no traps,
-            // even when the snake fills the entire 12 × 12 board.
+            this.interval = 0.045;
+            // Cycle order is the safety invariant. Shortcuts may skip empty
+            // cells, but cannot overtake the tail or the next piece of food.
             this.cycle = [];
             for (let x = 0; x < this.size; x++) this.cycle.push({ x, y: 0 });
             for (let y = 1; y < this.size; y++) {
@@ -20,31 +33,121 @@
                 }
             }
             for (let y = this.size - 1; y >= 1; y--) this.cycle.push({ x: 0, y });
+            this.order = Array(this.size * this.size);
+            this.cycle.forEach((cell, index) => { this.order[this.id(cell)] = index; });
+            this.plan = null;
             this.reset();
         }
 
-        reset() {
+        id(cell) { return cell.y * this.size + cell.x; }
+        cell(id) { return { x: id % this.size, y: Math.floor(id / this.size) }; }
+        distance(from, to) { return (this.order[to] - this.order[from] + this.cycle.length) % this.cycle.length; }
+
+        reset(seed = this.seed) {
+            this.seed = String(seed).slice(0, 80);
+            if (this.plan && this.plan.seed !== this.seed) this.plan = null;
+            if (this.plan) this.variant = this.plan.variant;
+            this.random = this.randomOverride || seededRandom(this.seed);
+            const choose = seededRandom(`${this.seed} / route / ${this.variant}`);
+            this.directions = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+            for (let i = this.directions.length - 1; i > 0; i--) {
+                const j = Math.floor(choose() * (i + 1));
+                [this.directions[i], this.directions[j]] = [this.directions[j], this.directions[i]];
+            }
             this.rounds++;
             this.headIndex = 3;
             this.body = [3, 2, 1, 0].map(index => ({ ...this.cycle[index] }));
             this.score = 0;
+            this.steps = 0;
             this.won = false;
             this.elapsed = 0;
             this.restartIn = 1.8;
+            this.route = [];
+            this.replayIndex = 0;
+            this.lastPathLength = null;
+            this.status = this.plan ? 'ready' : 'live';
             this.placeFood();
         }
 
         placeFood() {
-            const occupied = new Set(this.body.map(cell => cell.y * this.size + cell.x));
-            const available = this.cycle.filter(cell => !occupied.has(cell.y * this.size + cell.x));
-            this.food = available.length ? { ...available[Math.floor(this.random() * available.length)] } : null;
+            const occupied = new Set(this.body.map(cell => this.id(cell)));
+            const available = [];
+            for (let id = 0; id < this.cycle.length; id++) if (!occupied.has(id)) available.push(id);
+            this.food = available.length ? this.cell(available[Math.floor(this.random() * available.length)]) : null;
+            this.route = [];
+        }
+
+        neighbors(id) {
+            const { x, y } = this.cell(id);
+            return this.directions.flatMap(([dx, dy]) => {
+                const nx = x + dx, ny = y + dy;
+                return nx >= 0 && nx < this.size && ny >= 0 && ny < this.size ? [ny * this.size + nx] : [];
+            });
+        }
+
+        findShortestFoodPath() {
+            if (!this.food) return [];
+            const head = this.id(this.body[0]), food = this.id(this.food);
+            const occupied = new Set(this.body.slice(1).map(cell => this.id(cell)));
+            const limit = Math.min(this.distance(head, food), this.distance(head, this.id(this.body.at(-1))) - 1);
+            const parent = new Int16Array(this.cycle.length).fill(-1);
+            const queue = [head];
+            parent[head] = head;
+            for (let i = 0; i < queue.length && parent[food] < 0; i++) {
+                const current = queue[i];
+                for (const next of this.neighbors(current)) {
+                    const advance = this.distance(head, next);
+                    if (parent[next] >= 0 || occupied.has(next) || advance > limit || advance <= this.distance(head, current)) continue;
+                    parent[next] = current;
+                    queue.push(next);
+                }
+            }
+            if (parent[food] < 0) return [];
+            const path = [];
+            for (let current = food; current !== head; current = parent[current]) path.push(current);
+            return path.reverse();
+        }
+
+        chooseMove() {
+            if (!this.route.length) {
+                this.route = this.findShortestFoodPath();
+                this.lastPathLength = this.route.length || null;
+            }
+            if (this.route.length) return this.route.shift();
+            const head = this.id(this.body[0]), tail = this.id(this.body.at(-1)), food = this.id(this.food);
+            const occupied = new Set(this.body.slice(0, -1).map(cell => this.id(cell)));
+            const tailDistance = this.distance(head, tail), foodDistance = this.distance(head, food);
+            let best = null, largestAdvance = 0;
+            for (const next of this.neighbors(head)) {
+                const advance = this.distance(head, next);
+                if (occupied.has(next) || !advance || advance > foodDistance || advance > tailDistance || (next === food && advance === tailDistance)) continue;
+                if (advance > largestAdvance) { best = next; largestAdvance = advance; }
+            }
+            if (best === null) throw new Error('Snake cycle-order invariant failed');
+            return best;
+        }
+
+        applyPlan(plan) {
+            if (!plan || typeof plan.seed !== 'string' || !Number.isInteger(plan.variant) || !Array.isArray(plan.moves)
+                || !plan.moves.length || !plan.moves.every(id => Number.isInteger(id) && id >= 0 && id < this.cycle.length)) {
+                throw new Error('Invalid seeded snake plan');
+            }
+            this.plan = { ...plan, moves: plan.moves.slice() };
+            this.randomOverride = null;
+            this.reset(plan.seed);
         }
 
         step() {
-            if (this.won) return;
-            this.headIndex = (this.headIndex + 1) % this.cycle.length;
-            const next = { ...this.cycle[this.headIndex] };
+            if (this.won) return null;
+            const nextId = this.plan ? this.plan.moves[this.replayIndex++] : this.chooseMove();
+            const next = this.cell(nextId);
             const eating = this.food && next.x === this.food.x && next.y === this.food.y;
+            const head = this.body[0];
+            if (!Number.isInteger(nextId) || Math.abs(head.x - next.x) + Math.abs(head.y - next.y) !== 1
+                || this.body.slice(0, eating ? undefined : -1).some(cell => this.id(cell) === nextId)) {
+                throw new Error('Invalid snake replay move');
+            }
+            this.headIndex = this.order[nextId];
             this.body.unshift(next);
             if (eating) {
                 this.score++;
@@ -53,6 +156,8 @@
             } else {
                 this.body.pop();
             }
+            this.steps++;
+            return nextId;
         }
 
         update(dt) {
@@ -71,6 +176,25 @@
                 if (this.won) break;
             }
         }
+    }
+
+    function planSnakeCandidates(seed, { candidates = 8, onProgress = () => {} } = {}) {
+        seed = String(seed).slice(0, 80);
+        candidates = Math.max(1, Math.min(24, Math.floor(candidates) || 8));
+        let best = null;
+        const candidateSteps = [];
+        for (let variant = 0; variant < candidates; variant++) {
+            const trial = new AutoSnake({ seed, variant });
+            const moves = [];
+            // Without passing food or overtaking the tail, each apple takes at
+            // most one full 144-cell circuit; this is also a bounded watchdog.
+            while (!trial.won && trial.steps < 21000) moves.push(trial.step());
+            if (!trial.won) throw new Error('Seeded snake candidate did not fill the board');
+            candidateSteps.push(trial.steps);
+            if (!best || trial.steps < best.steps) best = { seed, variant, moves, steps: trial.steps };
+            onProgress({ completed: variant + 1, total: candidates, bestSteps: best.steps });
+        }
+        return { ...best, candidates, candidateSteps, strategy: 'BFS shortest safe food paths; shortest winning candidate' };
     }
 
     const SHAPES = [
@@ -219,7 +343,7 @@
         }
     }
 
-    const games = { AutoSnake, AutoTetris };
+    const games = { AutoSnake, AutoTetris, planSnakeCandidates };
     root.CanvasGames = games;
     if (typeof module !== 'undefined' && module.exports) module.exports = games;
 })(typeof globalThis !== 'undefined' ? globalThis : window);

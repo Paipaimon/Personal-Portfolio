@@ -1,6 +1,9 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { AutoSnake, AutoTetris } = require('../js/canvas-games.js');
+const { AutoSnake, AutoTetris, planSnakeCandidates } = require('../js/canvas-games.js');
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
 
 function seededRandom(seed) {
     let value = seed >>> 0;
@@ -43,12 +46,98 @@ test('12 × 12 snake eats, fills the board without a collision and automatically
         assert.equal(game.score, 140);
         game.update(0.5);
         assert.ok(game.won, 'win state remains visible before restarting');
-        for (let i = 0; i < 4; i++) game.update(0.5);
+        for (let i = 0; i < 3; i++) game.update(0.5);
         assert.equal(game.rounds, 2);
         assert.equal(game.score, 0);
         assert.equal(game.body.length, 4);
         assertSnakeLegal(game);
     }
+});
+
+test('seeded food and route choices replay exactly, while different seeds produce distinct games', () => {
+    const a = new AutoSnake({ seed: 'same-seed', variant: 3 });
+    const b = new AutoSnake({ seed: 'same-seed', variant: 3 });
+    const c = new AutoSnake({ seed: 'another-seed', variant: 3 });
+    assert.deepEqual(a.food, b.food);
+    const moves = [];
+    const other = [];
+    for (let i = 0; i < 240; i++) {
+        moves.push(a.step());
+        assert.equal(moves.at(-1), b.step());
+        assert.deepEqual(a.food, b.food);
+        other.push(c.step());
+    }
+    assert.notDeepEqual(moves, other);
+    a.reset();
+    for (const move of moves) assert.equal(a.step(), move, 'restarting the same seed reproduces the entire route');
+});
+
+test('shortest safe food path reaches a reachable apple in its Manhattan lower-bound number of moves', () => {
+    const game = new AutoSnake({ seed: 'shortest' });
+    game.food = { x: 5, y: 2 };
+    const start = game.body[0];
+    const lowerBound = Math.abs(start.x - game.food.x) + Math.abs(start.y - game.food.y);
+    const route = game.findShortestFoodPath();
+    assert.equal(route.length, lowerBound);
+    assert.equal(route.at(-1), game.id(game.food));
+    for (let step = 0; step < lowerBound; step++) {
+        game.step();
+        assertSnakeLegal(game);
+    }
+    assert.equal(game.score, 1);
+    assert.equal(game.steps, lowerBound);
+});
+
+test('seed search chooses the fewest-step winning candidate and its replay fills the board legally', () => {
+    for (const seed of ['canvas-2026', '42', '8103']) {
+        const progress = [];
+        const plan = planSnakeCandidates(seed, { onProgress: item => progress.push(item) });
+        assert.equal(plan.candidates, 8);
+        assert.equal(progress.length, 8);
+        assert.equal(progress.at(-1).completed, 8);
+        assert.equal(plan.steps, Math.min(...plan.candidateSteps));
+        assert.equal(plan.moves.length, plan.steps);
+        assert.ok(plan.steps < 12000, 'safe food shortcuts improve on long fixed-cycle sweeps');
+        const game = new AutoSnake();
+        game.applyPlan(plan);
+        while (!game.won) {
+            game.step();
+            assertSnakeLegal(game);
+        }
+        assert.equal(game.score, 140);
+        assert.equal(game.steps, plan.steps);
+        game.reset();
+        for (let i = 0; i < 100; i++) assert.equal(game.step(), plan.moves[i]);
+        game.reset('a-new-seed');
+        assert.equal(game.plan, null, 'changing seed cannot reuse a stale replay');
+        assert.equal(game.status, 'live', 'a live seeded game runs without a Worker or precomputed plan');
+    }
+});
+
+test('worker reports bounded search progress and returns a reproducible winning plan', () => {
+    const messages = [];
+    const worker = {
+        self: { postMessage: message => messages.push(message) },
+        importScripts: filename => {
+            assert.equal(filename, 'canvas-games.js');
+            worker.CanvasGames = { AutoSnake, AutoTetris, planSnakeCandidates };
+        }
+    };
+    vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../js/canvas-snake-worker.js'), 'utf8'), worker);
+    worker.self.onmessage({ data: { id: 17, seed: 'worker-seed' } });
+    assert.equal(messages.filter(message => message.type === 'progress').length, 8);
+    const complete = messages.at(-1);
+    assert.equal(complete.id, 17);
+    assert.equal(complete.type, 'complete');
+    assert.equal(complete.plan.seed, 'worker-seed');
+    const game = new AutoSnake();
+    game.applyPlan(complete.plan);
+    while (!game.won) game.step();
+    assert.equal(game.steps, complete.plan.steps);
+    worker.CanvasGames.planSnakeCandidates = () => { throw new Error('test failure'); };
+    worker.self.onmessage({ data: { id: 18, seed: 'error' } });
+    assert.equal(messages.at(-1).type, 'error');
+    assert.equal(messages.at(-1).id, 18);
 });
 
 test('snake fixed time steps do not depend on frame rate or advance on invalid time', () => {

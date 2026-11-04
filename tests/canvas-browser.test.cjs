@@ -105,17 +105,10 @@ async function main() {
         await clickPoint(point.x, point.y);
     };
     const navigate = async name => {
-        await click(`#canvas-nav [data-canvas-view="${name}"]`);
+        const selector = await evaluate(`(() => { const list = [...document.querySelectorAll('[data-canvas-view="${name}"]')]; const e = list.find(e => { const r = e.getBoundingClientRect(); return r.width && r.height && e.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)); }); if (!e) throw Error('No visible navigation to ${name}'); e.dataset.qaTarget = 'true'; return '[data-qa-target=true]'; })()`);
+        await click(selector);
+        await evaluate('document.querySelectorAll("[data-qa-target]").forEach(e => delete e.dataset.qaTarget)');
         await settleCamera();
-    };
-    const worldPoint = (x, y) => evaluate(`({x: canvasController.state.offsetX + (${x} + .5) * 50 * canvasController.state.scale, y: canvasController.state.offsetY + (${y} + .5) * 50 * canvasController.state.scale})`);
-    const stroke = async cells => {
-        const points = [];
-        for (const [x, y] of cells) points.push(await worldPoint(x, y));
-        await send('Input.dispatchMouseEvent', { type: 'mouseMoved', ...points[0] });
-        await send('Input.dispatchMouseEvent', { type: 'mousePressed', ...points[0], button: 'left', buttons: 1, clickCount: 1 });
-        for (const point of points.slice(1)) await send('Input.dispatchMouseEvent', { type: 'mouseMoved', ...point, button: 'left', buttons: 1 });
-        await send('Input.dispatchMouseEvent', { type: 'mouseReleased', ...points.at(-1), button: 'left', buttons: 0, clickCount: 1 });
     };
     const screenshot = async name => {
         // The existing theme adapter animates CSS colors for 500 ms.
@@ -133,119 +126,157 @@ async function main() {
     await send('Page.navigate', { url });
     await ready();
 
-    await check('homepage initializes and entry occupies origin cell', async () => {
-        assert.equal(await evaluate('canvasController.exploring === true'), false);
+    await check('default fills the right-bottom quadrant without drawing or explorer controls', async () => {
+        assert.equal(await evaluate('canvasController.defaultView'), true);
+        assert.deepEqual(await evaluate('[canvasController.state.offsetX, canvasController.state.offsetY, canvasController.state.scale]'), [0, 0, 1]);
         const entry = await evaluate('(() => { const r = document.getElementById("canvas-entry").getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height }; })()');
-        assert.deepEqual(entry, { x: 50, y: 50, w: 50, h: 50 });
+        assert.deepEqual(entry, { x: 0, y: 0, w: 50, h: 50 });
+        assert.equal(await evaluate('document.querySelectorAll("#canvas-nav,#canvas-explore,#paint-tools,#profile-form").length'), 0);
         assert.equal(await evaluate('document.querySelectorAll(".project-item").length > 0'), true);
-        await screenshot('desktop-home');
+        assert.equal(await evaluate('typeof canvasController.paint'), 'undefined');
+        assert.equal(await evaluate('document.getElementById("canvas-snake-controls").hidden'), true);
+        await evaluate('window.scrollTo(0,500)');
+        assert.ok(await evaluate('window.scrollY') > 0, 'default homepage retains vertical scrolling');
+        await evaluate('window.scrollTo(0,0)');
+        await screenshot('desktop-default');
+    });
+    if (process.env.CANVAS_QA_DEFAULT_ONLY) {
+        if (failures.length) process.exitCode = 1;
+        return;
+    }
+    await check('real mouse movement restores random clickable theme blocks', async () => {
+        const point = await evaluate('(() => { for(let y=200;y<800;y+=50) for(let x=100;x<400;x+=50) if(document.elementFromPoint(x+25,y+25)?.id === "gridCanvas") return {x:x+25,y:y+25}; throw Error("No exposed grid point"); })()');
+        await evaluate('canvasController.clearAllBlocks(); window.qaOriginalRandom = Math.random; Math.random = () => .6 / 100');
+        await send('Input.dispatchMouseEvent', { type: 'mouseMoved', ...point });
+        await evaluate('Math.random = window.qaOriginalRandom; delete window.qaOriginalRandom');
+        const block = await evaluate('({...canvasController.state.erasableBlocks[0]})');
+        assert.ok(block.gridX >= 0 && block.gridY >= 0);
+        await clickPoint(point.x, point.y);
+        assert.equal(await evaluate('canvasController.state.erasableBlocks[0]?.isClicked'), true);
+        assert.equal(await evaluate('themeManager.getCurrentThemeKey()'), block.targetThemeKey);
+        await evaluate('themeManager.setTheme("light")');
     });
     await click('#canvas-entry');
     await settleCamera();
-    await check('entry focuses upper-left editable profile', async () => {
+    await check('entry pans directly to a configured profile and visible return grid cell', async () => {
         assert.equal(await evaluate('canvasController.focusedView'), 'profile');
-        assert.equal(await evaluate('document.getElementById("canvas-profile").hidden'), false);
-        await click('#profile-form input[name="name"]');
-        await evaluate('document.activeElement.select()');
-        await send('Input.insertText', { text: 'Canvas QA 1234' });
-        await send('Input.dispatchKeyEvent', { type: 'keyDown', key: '2', code: 'Digit2', text: '2', windowsVirtualKeyCode: 50 });
-        await send('Input.dispatchKeyEvent', { type: 'keyUp', key: '2', code: 'Digit2', windowsVirtualKeyCode: 50 });
-        assert.equal(await evaluate('themeManager.getCurrentThemeKey()'), 'light');
-        await click('#profile-form button[type="submit"]');
-        assert.equal(await evaluate('JSON.parse(localStorage.getItem("portfolio-canvas-profile")).name'), 'Canvas QA 12342');
+        assert.equal(await evaluate('document.body.classList.contains("canvas-exploring")'), false);
+        assert.equal(await evaluate('getComputedStyle(document.getElementById("homepage-content")).display !== "none"'), true);
+        assert.equal(await evaluate('document.getElementById("canvas-profile-title").textContent'), await evaluate('PORTFOLIO_PROFILE.name'));
+        assert.equal(await evaluate('document.querySelectorAll("#canvas-profile input,#canvas-profile textarea").length'), 0);
+        assert.equal(await evaluate('document.getElementById("canvas-home").hidden'), false);
+        const offset = await evaluate('(() => { const a=document.getElementById("canvas-entry").getBoundingClientRect(), b=document.getElementById("canvas-home").getBoundingClientRect(); return [a.x-b.x,a.y-b.y,b.width,b.height]; })()');
+        assert.ok(offset.every(value => Math.abs(value - offset[0]) < .01));
         await screenshot('desktop-profile');
-        await send('Page.reload');
-        await ready();
-        await click('#canvas-entry');
-        await settleCamera();
-        assert.equal(await evaluate('document.querySelector("#profile-form [name=name]").value'), 'Canvas QA 12342');
     });
-    await check('12 × 12 snake and tetris animate automatically', async () => {
+    await check('configured media and contact links render local SVG icons safely', async () => {
+        await evaluate('CanvasProfile.render(document.getElementById("canvas-profile"), {...PORTFOLIO_PROFILE,name:"Jlands <b>literal</b>",links:[{label:"GitHub",icon:"github",url:"https://example.test/profile"},{label:"Mail",icon:"mail",url:"mailto:qa@example.test"},{label:"Phone",icon:"phone",url:"tel:+8613800000000"},{label:"Video",icon:"bilibili",url:"https://example.test/video"},{label:"Empty",icon:"link",url:""},{label:"Unsafe",icon:"link",url:"javascript:alert(1)"}]})');
+        const links = await evaluate('[...document.querySelectorAll("#canvas-profile .canvas-profile-link")].map(a=>({label:a.getAttribute("aria-label"),icon:!!a.querySelector("svg"),href:a.href,target:a.target,rel:a.rel}))');
+        assert.equal(links.length, 4);
+        assert.ok(links.every(link => link.icon && link.label));
+        assert.equal(links[0].target, '_blank'); assert.match(links[0].rel, /noopener/);
+        assert.equal(links[1].href, 'mailto:qa@example.test');
+        assert.equal(await evaluate('document.querySelector("#canvas-profile-title b")'), null);
+        assert.match(await evaluate('document.getElementById("canvas-profile-title").textContent'), /<b>literal<\/b>/);
+        await screenshot('desktop-profile-links');
+        await evaluate('CanvasProfile.render(document.getElementById("canvas-profile"), PORTFOLIO_PROFILE)');
+    });
+    await check('seeded worker plans winning routes, replays them and reproduces the same seed', async () => {
         await navigate('snake');
         assert.equal(await evaluate('canvasController.snake.size'), 12);
+        await waitFor(() => evaluate('!canvasController.snakePlanning && !!canvasController.snake.plan'), 'initial winning route plan', 30000);
+        await click('#snake-seed');
+        await evaluate('document.activeElement.select()');
+        await send('Input.insertText', { text: 'qa-seed-1234' });
+        await send('Input.dispatchKeyEvent', { type: 'keyDown', key: '2', code: 'Digit2', text: '2', windowsVirtualKeyCode: 50 });
+        await send('Input.dispatchKeyEvent', { type: 'keyUp', key: '2', code: 'Digit2', windowsVirtualKeyCode: 50 });
+        assert.equal(await evaluate('themeManager.getCurrentThemeKey()'), 'light', 'seed editing must not trigger a theme shortcut');
+        await click('#snake-seed-form button[type=submit]');
+        await waitFor(() => evaluate('!canvasController.snakePlanning && canvasController.snake.plan?.seed === "qa-seed-12342"'), 'custom winning route plan', 30000);
+        const plan = await evaluate('JSON.stringify(canvasController.snake.plan)');
+        assert.equal(await evaluate('canvasController.snake.plan.steps === Math.min(...canvasController.snake.plan.candidateSteps)'), true);
         const head = await evaluate('JSON.stringify(canvasController.snake.body[0])');
         await delay(300);
         assert.notEqual(await evaluate('JSON.stringify(canvasController.snake.body[0])'), head);
+        await click('#snake-seed-form button[type=submit]');
+        await waitFor(() => evaluate('!canvasController.snakePlanning && !!canvasController.snake.plan'), 'repeated winning route plan', 30000);
+        assert.equal(await evaluate('JSON.stringify(canvasController.snake.plan)'), plan);
         await screenshot('desktop-snake');
-        await navigate('tetris');
+    });
+    await check('tetris keeps running and real navigation remains reachable', async () => {
+        await navigate('profile'); await navigate('tetris');
         const before = await evaluate('JSON.stringify([canvasController.tetris.piece, canvasController.tetris.pieces])');
         await delay(300);
         assert.notEqual(await evaluate('JSON.stringify([canvasController.tetris.piece, canvasController.tetris.pieces])'), before);
         await screenshot('desktop-tetris');
+        await navigate('profile');
     });
-    await check('real pointer painting, erasing, undo and clear', async () => {
-        await navigate('paint');
-        await stroke([[3, 4], [8, 4]]);
-        assert.deepEqual(await evaluate('[...canvasController.paint.keys()].sort()'), ['3,4', '4,4', '5,4', '6,4', '7,4', '8,4']);
-        assert.equal(await evaluate('canvasController.undoStack.length'), 1);
-        await click('[data-paint-tool="erase"]');
-        await stroke([[5, 4]]);
-        assert.equal(await evaluate('canvasController.paint.has("5,4")'), false);
-        await click('[data-paint-action="undo"]');
-        assert.equal(await evaluate('canvasController.paint.has("5,4")'), true);
-        await screenshot('desktop-paint');
-        await click('[data-paint-action="clear"]');
-        assert.equal(await evaluate('canvasController.paint.size'), 0);
-        await click('[data-paint-action="undo"]');
-        assert.equal(await evaluate('canvasController.paint.size'), 6);
-    });
-    await check('all four themes recolor existing canvas content', async () => {
+    await check('all four themes recolor the profile, controls and grid', async () => {
         for (const theme of ['dark', 'pink', 'blue', 'light']) {
             await click(`.theme-button[data-theme="${theme}"]`);
             assert.equal(await evaluate('themeManager.getCurrentThemeKey()'), theme);
             assert.equal(await evaluate('document.documentElement.style.getPropertyValue("--canvas-bg-color") === themeManager.getCurrentTheme().canvas.bgColor'), true);
-            assert.equal(await evaluate('canvasController.paint.size'), 6);
-            await screenshot(`desktop-paint-${theme}`);
+            await screenshot(`desktop-profile-${theme}`);
         }
     });
-    await check('pan and wheel zoom preserve fixed world coordinates', async () => {
-        await click('[data-paint-tool="pan"]');
+    await check('pointer pan and wheel zoom keep world positions fixed', async () => {
+        const p = await evaluate('(() => { for(let y=100;y<800;y+=50) for(let x=50;x<400;x+=50) if(document.elementFromPoint(x,y)?.id === "gridCanvas") return {x,y}; throw Error("No exposed grid point"); })()');
         const before = await evaluate('({...canvasController.state})');
-        const p = await worldPoint(6, 6);
         await send('Input.dispatchMouseEvent', { type: 'mousePressed', ...p, button: 'left', buttons: 1, clickCount: 1 });
         await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: p.x + 73, y: p.y + 31, button: 'left', buttons: 1 });
         await send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: p.x + 73, y: p.y + 31, button: 'left', buttons: 0, clickCount: 1 });
         assert.equal(await evaluate('canvasController.state.offsetX'), before.offsetX + 73);
         assert.equal(await evaluate('canvasController.state.offsetY'), before.offsetY + 31);
-        const coordinate = await evaluate('canvasController.getGridFromScreen(750, 500)');
+        const coordinate = await evaluate(`canvasController.getGridFromScreen(${p.x}, ${p.y})`);
         const scale = await evaluate('canvasController.state.scale');
-        await send('Input.dispatchMouseEvent', { type: 'mouseWheel', x: 750, y: 500, deltaX: 0, deltaY: -250 });
+        await send('Input.dispatchMouseEvent', { type: 'mouseWheel', ...p, deltaX: 0, deltaY: -250 });
         await waitFor(() => evaluate(`canvasController.state.scale > ${scale}`), 'wheel zoom');
-        assert.deepEqual(await evaluate('canvasController.getGridFromScreen(750, 500)'), coordinate);
-        assert.deepEqual(await evaluate('[...canvasController.paint.keys()].sort()'), ['3,4', '4,4', '5,4', '6,4', '7,4', '8,4']);
+        assert.deepEqual(await evaluate(`canvasController.getGridFromScreen(${p.x}, ${p.y})`), coordinate);
+        await send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+        await settleCamera();
+        assert.equal(await evaluate('canvasController.defaultView'), true);
     });
-    await check('mobile profile, navigation, drawing and pinch zoom', async () => {
+    await check('mobile profile, return cell, seed controls, touch pan and pinch', async () => {
         await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
         await send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 2 });
         await delay(250);
-        await navigate('profile');
+        await click('#canvas-entry'); await settleCamera();
+        assert.deepEqual(await evaluate('[innerWidth,innerHeight]'), [390,844], 'world camera must not expand the mobile layout viewport');
+        await click('.theme-button[data-theme="dark"]');
+        assert.equal(await evaluate('themeManager.getCurrentThemeKey()'), 'dark');
+        await click('.theme-button[data-theme="light"]');
+        await evaluate('CanvasProfile.render(document.getElementById("canvas-profile"), {...PORTFOLIO_PROFILE, links: ["github","bilibili","mail","link","phone","wechat","video"].map((icon,i)=>({label:icon,icon,url:"https://example.test/"+i}))})');
+        assert.equal(await evaluate('document.querySelectorAll("#canvas-profile .canvas-profile-link").length'), 7);
+        assert.equal(await evaluate('(() => {const p=document.querySelector(".canvas-profile-links").getBoundingClientRect(),n=document.querySelector("#canvas-profile > nav").getBoundingClientRect();return p.bottom <= n.top;})()'), true);
         await screenshot('mobile-profile');
-        await click('#profile-form input[name="contact"]');
-        await send('Input.insertText', { text: 'qa@example.test' });
-        assert.equal(await evaluate('document.querySelector("#profile-form [name=contact]").value'), 'qa@example.test');
-        await navigate('paint');
-        await click('[data-paint-tool="brush"]');
-        const a = await worldPoint(3, 7), b = await worldPoint(6, 7);
-        await send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ ...a, id: 1 }] });
-        await send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ ...b, id: 1 }] });
-        await send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-        assert.equal(await evaluate('canvasController.paint.has("3,7") && canvasController.paint.has("6,7")'), true);
-        await screenshot('mobile-paint');
+        const home = await evaluate('(() => { const r=document.getElementById("canvas-home").getBoundingClientRect(); return {x:r.x,y:r.y,w:r.width,h:r.height}; })()');
+        assert.ok(home.x >= 0 && home.y >= 0 && home.x + home.w <= 390 && home.y + home.h <= 844);
+        await click('#canvas-home'); await settleCamera();
+        assert.deepEqual(await evaluate('[canvasController.state.offsetX, canvasController.state.offsetY, canvasController.state.scale]'), [0,0,1]);
+        await click('#canvas-entry'); await settleCamera();
+        await navigate('snake'); await screenshot('mobile-snake');
+        await click('#snake-seed'); await evaluate('document.activeElement.select()');
+        await send('Input.insertText', { text: 'mobile-seed' });
+        await click('#snake-seed-form button[type=submit]');
+        await waitFor(() => evaluate('!canvasController.snakePlanning && canvasController.snake.plan?.seed === "mobile-seed"'), 'mobile winning route plan', 30000);
+        await navigate('profile');
         const scale = await evaluate('canvasController.state.scale');
-        await send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 150, y: 350, id: 1 }, { x: 250, y: 350, id: 2 }] });
-        await send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: 110, y: 350, id: 1 }, { x: 290, y: 350, id: 2 }] });
+        await send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 50, y: 120, id: 1 }, { x: 150, y: 120, id: 2 }] });
+        await send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: 30, y: 120, id: 1 }, { x: 170, y: 120, id: 2 }] });
+        // CDP touchEnd lists the finger being lifted; id 1 remains down.
+        await send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [{ x: 170, y: 120, id: 2 }] });
+        const offset = await evaluate('[canvasController.state.offsetX,canvasController.state.offsetY]');
+        await send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: 45, y: 135, id: 1 }] });
         await send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
         assert.ok(await evaluate('canvasController.state.scale') > scale);
-        await navigate('snake');
-        await screenshot('mobile-snake');
-        await navigate('tetris');
-        await screenshot('mobile-tetris');
-        await navigate('overview');
-        await screenshot('mobile-overview');
-        await navigate('home');
+        assert.deepEqual(await evaluate('[canvasController.state.offsetX,canvasController.state.offsetY]'), offset.map(x=>x+15));
+        await evaluate('canvasController.focusRegion("profile")'); await settleCamera();
+        await navigate('tetris'); await screenshot('mobile-tetris');
+        await navigate('default');
         assert.equal(await evaluate('document.body.classList.contains("canvas-exploring")'), false);
-        assert.equal(await evaluate('document.getElementById("canvas-explore").hidden'), false);
-        await screenshot('mobile-home');
+        assert.deepEqual(await evaluate('[canvasController.state.offsetX,canvasController.state.offsetY,canvasController.state.scale]'), [0,0,1]);
+        assert.equal(await evaluate('document.getElementById("canvas-snake-controls").hidden'), true);
+        await screenshot('mobile-default');
     });
     await check('no page errors', async () => { assert.deepEqual(errors, []); });
     console.log(`Screenshots: ${screenshots}`);
