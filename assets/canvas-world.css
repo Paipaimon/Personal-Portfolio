@@ -1,0 +1,299 @@
+/* Screen controls frame a single world; the entry and profile follow its camera. */
+#canvas-background canvas {
+    touch-action: none;
+}
+
+body.canvas-exploring {
+    height: 100dvh;
+    min-height: 100dvh;
+    overflow: hidden;
+}
+
+body.canvas-exploring > .container,
+body.canvas-exploring > footer,
+body.canvas-exploring > .air-wall {
+    display: none;
+}
+
+#canvas-world-ui {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    overflow: hidden;
+    pointer-events: none;
+    color: var(--homepage-text-color);
+}
+
+#canvas-world-ui [hidden] {
+    display: none !important;
+}
+
+#canvas-world-ui button {
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    pointer-events: auto;
+}
+
+#canvas-world-ui button:focus-visible,
+#canvas-profile input:focus-visible,
+#canvas-profile textarea:focus-visible {
+    outline: 2px solid var(--canvas-highlight-color);
+    outline-offset: 4px;
+}
+
+#canvas-entry {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 50px;
+    height: 50px;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--canvas-axis-color);
+    border-radius: 0;
+    background: var(--canvas-bg-color);
+    transform-origin: 0 0;
+    isolation: isolate;
+    transition: none !important;
+}
+
+#canvas-entry::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: var(--canvas-highlight-color);
+    opacity: .1;
+    animation: canvas-entry-glow 3s ease-in-out infinite;
+}
+
+#canvas-entry span {
+    color: var(--canvas-highlight-color);
+    font-size: 30px;
+    line-height: 1;
+    text-shadow: 0 0 14px var(--canvas-axis-color);
+}
+
+#canvas-entry:hover::before {
+    opacity: .22;
+    animation: none;
+}
+
+@keyframes canvas-entry-glow {
+    0%, 100% { opacity: .06; }
+    50% { opacity: .22; }
+}
+
+#canvas-explore {
+    position: fixed;
+    left: 24px;
+    bottom: max(24px, env(safe-area-inset-bottom));
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 12px 16px;
+    border: 1px solid var(--canvas-axis-color);
+    border-radius: 0;
+    background: var(--canvas-bg-color);
+    font-size: 13px !important;
+    letter-spacing: .04em;
+}
+
+#canvas-explore span {
+    font-size: 20px;
+}
+
+#canvas-nav,
+#paint-tools {
+    position: fixed;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 6px;
+    border: 1px solid var(--canvas-axis-color);
+    background: var(--canvas-bg-color);
+    pointer-events: auto;
+}
+
+#canvas-nav {
+    bottom: max(20px, env(safe-area-inset-bottom));
+    left: 50%;
+    transform: translateX(-50%);
+    width: max-content;
+    max-width: calc(100vw - 32px);
+}
+
+#canvas-nav button,
+#paint-tools button {
+    padding: 10px 12px;
+    border: 1px solid transparent;
+    border-radius: 0;
+    background: transparent;
+    font-size: 12px;
+    line-height: 1.25;
+    white-space: nowrap;
+}
+
+#canvas-nav button:hover,
+#paint-tools button:hover,
+#canvas-nav button[aria-current="true"],
+#canvas-nav button[aria-current="page"],
+#canvas-nav button[aria-pressed="true"],
+#paint-tools button[aria-pressed="true"] {
+    border-color: var(--canvas-axis-color);
+    background: var(--canvas-bg-color);
+    color: var(--canvas-highlight-color);
+}
+
+#canvas-nav button[data-canvas-view="home"] {
+    border-left-color: var(--canvas-axis-color);
+}
+
+#canvas-hint {
+    position: fixed;
+    top: 24px;
+    left: 24px;
+    max-width: min(430px, calc(100vw - 190px));
+    padding: 8px 10px;
+    background: var(--canvas-bg-color);
+    color: var(--homepage-text-color);
+    font-size: 12px;
+    line-height: 1.6;
+    letter-spacing: .02em;
+}
+
+#paint-tools {
+    bottom: max(82px, calc(env(safe-area-inset-bottom) + 62px));
+    left: 50%;
+    transform: translateX(-50%);
+    width: max-content;
+    max-width: calc(100vw - 48px);
+}
+
+.canvas-tool-divider {
+    width: 1px;
+    height: 20px;
+    margin: 0 3px;
+    background: var(--canvas-axis-color);
+}
+
+#canvas-profile {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 500px;
+    height: 400px;
+    padding: 40px;
+    border: 1px solid var(--canvas-axis-color);
+    border-radius: 0;
+    background: color-mix(in srgb, var(--canvas-bg-color) 92%, transparent);
+    transform-origin: 0 0;
+    transition: none !important;
+    pointer-events: auto;
+}
+
+.canvas-profile-eyebrow {
+    color: var(--canvas-highlight-color);
+    font-size: 11px;
+    line-height: 18px;
+    letter-spacing: .18em;
+}
+
+#canvas-profile h2 {
+    margin: 3px 0 18px;
+    font-size: 24px;
+    font-weight: 500;
+    line-height: 32px;
+    letter-spacing: .02em;
+}
+
+#profile-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 12px 20px;
+}
+
+#profile-form label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 11px;
+    line-height: 16px;
+    letter-spacing: .03em;
+}
+
+.canvas-profile-wide {
+    grid-column: 1 / -1;
+}
+
+#canvas-profile input,
+#canvas-profile textarea {
+    width: 100%;
+    min-width: 0;
+    padding: 6px 0;
+    border: 0;
+    border-bottom: 1px solid var(--canvas-axis-color);
+    border-radius: 0;
+    background: transparent;
+    color: var(--homepage-text-color);
+    font: inherit;
+    font-size: 14px;
+    line-height: 20px;
+    user-select: text;
+    touch-action: auto;
+}
+
+#canvas-profile input {
+    height: 32px;
+}
+
+#canvas-profile textarea {
+    height: 48px;
+    resize: none;
+}
+
+#canvas-profile input::placeholder {
+    color: var(--homepage-text-color);
+    opacity: .5;
+}
+
+.canvas-profile-save {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-top: 4px;
+}
+
+.canvas-profile-save button {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 8px 10px;
+    border: 1px solid var(--canvas-axis-color);
+    border-radius: 0;
+    background: transparent;
+    font-size: 11px !important;
+    white-space: nowrap;
+}
+
+#profile-status {
+    font-size: 10px;
+    line-height: 16px;
+    opacity: .65;
+}
+
+@media (max-width: 600px) {
+    #canvas-explore { left: 16px; bottom: max(16px, env(safe-area-inset-bottom)); }
+    #canvas-nav { bottom: max(12px, env(safe-area-inset-bottom)); gap: 0; }
+    #canvas-nav button { padding: 9px 8px; font-size: 11px; }
+    #canvas-hint { top: 14px; left: 12px; max-width: calc(100vw - 160px); padding: 4px; font-size: 10px; }
+    #paint-tools { bottom: max(110px, calc(env(safe-area-inset-bottom) + 100px)); max-width: calc(100vw - 24px); }
+    #paint-tools button { padding: 8px 10px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #canvas-entry::before { animation: none; opacity: .14; }
+}

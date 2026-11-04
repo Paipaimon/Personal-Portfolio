@@ -529,12 +529,62 @@
             }
         }
     </style>
+    <link rel="stylesheet" href="assets/canvas-world.css">
 </head>
 
 <body>
     <!-- Canvas Background Layer -->
     <div id="canvas-background">
-        <canvas id="gridCanvas"></canvas>
+        <canvas id="gridCanvas" aria-label="可平移缩放的四象限交互画布"></canvas>
+    </div>
+
+    <div id="canvas-world-ui">
+        <button id="canvas-entry" type="button" title="关于我 · 点击探索画布" aria-label="关于我 · 点击探索画布">
+            <span aria-hidden="true">✦</span>
+        </button>
+        <button id="canvas-explore" type="button" data-canvas-view="overview">探索画布 <span aria-hidden="true">↗</span></button>
+
+        <p id="canvas-hint" hidden>拖动平移 · 滚轮缩放 · 选择区域探索</p>
+        <nav id="canvas-nav" aria-label="画布区域导航" hidden>
+            <button type="button" data-canvas-view="profile">↖ 关于我</button>
+            <button type="button" data-canvas-view="snake">↗ 贪吃蛇</button>
+            <button type="button" data-canvas-view="tetris">↙ 俄罗斯方块</button>
+            <button type="button" data-canvas-view="paint">↘ 绘画</button>
+            <button type="button" data-canvas-view="overview">全景</button>
+            <button type="button" data-canvas-view="home">返回首页</button>
+        </nav>
+
+        <div id="paint-tools" role="toolbar" aria-label="绘画工具" hidden>
+            <button type="button" data-paint-tool="brush" aria-pressed="true" title="在右下象限涂色">画笔</button>
+            <button type="button" data-paint-tool="erase" aria-pressed="false" title="擦除右下象限的绘画">橡皮</button>
+            <button type="button" data-paint-tool="pan" aria-pressed="false" title="拖动平移画布">平移</button>
+            <span class="canvas-tool-divider" aria-hidden="true"></span>
+            <button type="button" data-paint-action="undo" title="撤销上一次绘画">撤销</button>
+            <button type="button" data-paint-action="clear" title="清空右下象限的绘画">清空</button>
+        </div>
+
+        <section id="canvas-profile" aria-labelledby="canvas-profile-title" hidden>
+            <p class="canvas-profile-eyebrow">01 / 关于我</p>
+            <h2 id="canvas-profile-title">在网格里，认识我。</h2>
+            <form id="profile-form">
+                <label class="canvas-profile-wide">名字
+                    <input name="name" autocomplete="nickname" maxlength="60" value="Jlands" required>
+                </label>
+                <label class="canvas-profile-wide">个人介绍
+                    <textarea name="bio" maxlength="240" rows="2">探索创意与技术的结合</textarea>
+                </label>
+                <label>所在地
+                    <input name="location" autocomplete="address-level1" maxlength="80" value="中国">
+                </label>
+                <label>联系方式
+                    <input name="contact" autocomplete="off" maxlength="120" placeholder="邮箱或其他联系方式">
+                </label>
+                <div class="canvas-profile-save canvas-profile-wide">
+                    <button type="submit">保存到此浏览器 <span aria-hidden="true">↗</span></button>
+                    <p id="profile-status" role="status">个人信息仅保存在当前浏览器。</p>
+                </div>
+            </form>
+        </section>
     </div>
 
     <!-- Theme Indicator -->
@@ -584,6 +634,7 @@
     <!-- Theme System Scripts -->
     <script src="js/theme-config.js"></script>
     <script src="js/theme-manager.js"></script>
+    <script src="js/canvas-games.js"></script>
     <script src="js/canvas-background-controller.js"></script>
     <script src="js/homepage-theme-adapter.js"></script>
     
@@ -595,8 +646,6 @@
     <script src="js/project-display-controller.js"></script>
     <script src="js/homepage-controller.js"></script>
     
-    <!-- Responsive Design Validation (for testing) -->
-    <script src="validate-responsive-design.js"></script>
     <script>
         // 主页面初始化
         let homepageController;

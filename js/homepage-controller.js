@@ -8,9 +8,8 @@ class HomepageController {
         // 控制器实例
         this.themeSystemController = null;
         this.projectDisplayController = null;
-        this.keyboardShortcutsController = null;
-        this.touchGesturesController = null;
-        this.responsiveMonitorController = null;
+        this.keyboardShortcutsEnabled = false;
+        this.handleKeyDown = this.handleKeyDown.bind(this);
         
         // 系统组件引用
         this.themeManager = null;
@@ -42,10 +41,7 @@ class HomepageController {
             // 3. 初始化交互控制器
             await this.initializeInteractionControllers();
 
-            // 4. 初始化响应式监控
-            await this.initializeResponsiveMonitoring();
-
-            // 5. 设置全局引用
+            // 4. 设置全局引用（画布和主题适配器各自处理窗口尺寸变化）
             this.setupGlobalReferences();
 
             this.isInitialized = true;
@@ -111,28 +107,28 @@ class HomepageController {
      * 初始化交互控制器
      */
     async initializeInteractionControllers() {
-        // 键盘快捷键
-        this.keyboardShortcutsController = new KeyboardShortcutsController(this.themeManager);
-        this.keyboardShortcutsController.initialize();
-
-        // 触摸手势
-        this.touchGesturesController = new TouchGesturesController(this.themeManager);
-        this.touchGesturesController.initialize();
-        
+        document.addEventListener('keydown', this.handleKeyDown);
+        this.keyboardShortcutsEnabled = true;
         console.log('交互控制器初始化完成');
     }
 
     /**
-     * 初始化响应式监控
+     * 数字键切换主题；编辑个人资料时保留正常输入行为。
      */
-    async initializeResponsiveMonitoring() {
-        this.responsiveMonitorController = new ResponsiveMonitorController(
-            this.canvasController, 
-            this.themeManager
-        );
-        this.responsiveMonitorController.initialize();
-        
-        console.log('响应式监控初始化完成');
+    handleKeyDown(event) {
+        if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey || event.isComposing) {
+            return;
+        }
+        const target = event.target;
+        if (target && (target.isContentEditable || target.closest?.('input, textarea, select, [contenteditable="true"]'))) {
+            return;
+        }
+        if (/^[1-9]$/.test(event.key)) {
+            const theme = this.getAvailableThemes()[Number(event.key) - 1];
+            if (theme) {
+                this.themeManager.setTheme(theme);
+            }
+        }
     }
 
     /**
@@ -172,8 +168,13 @@ class HomepageController {
      * 获取设备信息
      */
     getDeviceInfo() {
-        return this.responsiveMonitorController ? 
-               this.responsiveMonitorController.getDeviceInfo() : null;
+        return {
+            width: window.innerWidth,
+            height: window.innerHeight,
+            pixelRatio: window.devicePixelRatio || 1,
+            isMobile: window.innerWidth <= 768,
+            touchSupported: 'ontouchstart' in window || navigator.maxTouchPoints > 0
+        };
     }
 
     /**
@@ -225,9 +226,9 @@ class HomepageController {
             initialized: this.isInitialized,
             themeSystem: !!this.themeSystemController,
             projectDisplay: !!this.projectDisplayController,
-            keyboardShortcuts: !!this.keyboardShortcutsController,
-            touchGestures: !!this.touchGesturesController,
-            responsiveMonitor: !!this.responsiveMonitorController,
+            keyboardShortcuts: this.keyboardShortcutsEnabled,
+            touchGestures: !!this.canvasController,
+            responsiveMonitor: !!this.homepageAdapter,
             currentTheme: this.getCurrentTheme(),
             deviceInfo: this.getDeviceInfo()
         };
@@ -237,22 +238,19 @@ class HomepageController {
      * 销毁主页面控制器
      */
     destroy() {
-        // 销毁所有子控制器
-        if (this.keyboardShortcutsController) {
-            this.keyboardShortcutsController.destroy();
-        }
-        
-        if (this.touchGesturesController) {
-            this.touchGesturesController.destroy();
-        }
-        
-        if (this.responsiveMonitorController) {
-            this.responsiveMonitorController.destroy();
-        }
+        document.removeEventListener('keydown', this.handleKeyDown);
+        this.keyboardShortcutsEnabled = false;
+        this.canvasController?.destroy();
 
         // 清理全局引用
         if (window.homepageController === this) {
             delete window.homepageController;
+        }
+        if (window.canvasController === this.canvasController) {
+            delete window.canvasController;
+        }
+        if (window.themeManager === this.themeManager) {
+            delete window.themeManager;
         }
         
         this.isInitialized = false;
