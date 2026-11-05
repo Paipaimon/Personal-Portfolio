@@ -20,10 +20,11 @@ function target(dataset = {}) {
 }
 
 function harness({ width = 1200, height = 900, worker = false, reducedMotion = true } = {}) {
-    const ids = Object.fromEntries(['canvas-entry', 'canvas-home', 'canvas-snake-link', 'canvas-tetris-link', 'canvas-profile', 'homepage-content', 'canvas-tetris-controls', 'canvas-explore', 'canvas-exit', 'canvas-nav'].map(id => [id, target()]));
+    const ids = Object.fromEntries(['canvas-entry', 'canvas-home', 'canvas-snake-link', 'canvas-tetris-link', 'canvas-profile', 'homepage-content', 'canvas-snake-controls', 'canvas-tetris-controls', 'canvas-explore', 'canvas-exit', 'canvas-nav'].map(id => [id, target()]));
     ids['canvas-nav'].hidden = true;
     const views = ['profile', 'snake', 'tetris', 'overview', 'default'].map(canvasView => target({ canvasView }));
-    const document = { body: target(), hidden: false, getElementById: id => ids[id], querySelectorAll: selector => selector.includes('data-canvas-view') ? views : [] };
+    const resets = ['snake', 'tetris'].map(canvasReset => target({ canvasReset }));
+    const document = { body: target(), hidden: false, getElementById: id => ids[id], querySelectorAll: selector => selector.includes('data-canvas-view') ? views : selector.includes('data-canvas-reset') ? resets : [] };
     const config = { name: 'AckerLi', birthDate: '2004-11-16', bio: 'From checked-in configuration', links: [] };
     const window = Object.assign(target(), { innerWidth: width, innerHeight: height, devicePixelRatio: 1.5, scrollY: 300, PORTFOLIO_PROFILE: config,
         matchMedia: () => ({ matches: reducedMotion }), scrollTo: (_, y) => { window.scrollY = y; } });
@@ -66,7 +67,7 @@ function harness({ width = 1200, height = 900, worker = false, reducedMotion = t
     const pointer = (id, x, y, button = 0) => ({ pointerId: id, clientX: x, clientY: y, button, target: canvas, preventDefault() {} });
     const screen = (x, y) => ({ x: controller.state.offsetX + (x + .5) * 50 * controller.state.scale, y: controller.state.offsetY + (y + .5) * 50 * controller.state.scale });
     const settle = () => { now += 1000; controller.loop(now); };
-    return { controller, canvas, window, document, ids, views, callbacks, frames, timers, fills, lines, captures, pointer, screen, themeManager, config, workers, renders, logs, settle };
+    return { controller, canvas, window, document, ids, views, resets, callbacks, frames, timers, fills, lines, captures, pointer, screen, themeManager, config, workers, renders, logs, settle };
 }
 
 test('default shows positive-grid random blocks and exploration entry, without seed or drawing UI', () => {
@@ -107,6 +108,34 @@ test('normal mode blocks wheel, Ctrl-wheel, direct zoom and pinch, including aft
         assert.equal(c.state.scale, 1);
         assert.equal(c.exploring, false);
     }
+    c.destroy();
+});
+
+test('game edges stay two cells from both axes and reset controls follow their boards', () => {
+    const h = harness(), c = h.controller;
+    assert.deepEqual({ ...c.regions.snake }, { x: 2, y: -14, w: 12, h: 12 });
+    assert.deepEqual({ ...c.regions.tetris }, { x: -12, y: 2, w: 10, h: 16 });
+    assert.equal(c.regions.snake.y + c.regions.snake.h, -2);
+    assert.equal(c.regions.tetris.x + c.regions.tetris.w, -2);
+    assert.equal(c.tetris.rows, 16);
+    c.enterExploration(); c.focusRegion('snake');
+    const snake = c.regions.snake;
+    const sx = c.state.offsetX + snake.x * 50 * c.state.scale;
+    const sy = c.state.offsetY + (snake.y + snake.h + .2) * 50 * c.state.scale;
+    assert.equal(h.ids['canvas-snake-controls'].style.transform, `translate(${sx}px, ${sy}px) scale(${c.state.scale})`);
+    const seed = c.snake.seed;
+    c.snake.steps = 40; c.snake.score = 3;
+    h.resets[0].dispatch('click');
+    assert.equal(c.snake.seed, seed);
+    assert.equal(c.snake.steps, 0); assert.equal(c.snake.score, 0);
+    c.tetris.board[15].fill(5); c.tetris.lines = 3; c.tetris.score = 100;
+    h.resets[1].dispatch('click');
+    assert.equal(c.tetris.lines, 0); assert.equal(c.tetris.score, 0);
+    assert.ok(c.tetris.board.every(row => row.every(cell => cell === 0)));
+    h.window.scrollY = 500;
+    c.focusRegion('default');
+    assert.equal(h.window.scrollY, 0, 'default navigation always returns to the homepage introduction');
+    assert.deepEqual([c.state.offsetX, c.state.offsetY, c.state.scale], [0, 0, 1]);
     c.destroy();
 });
 
@@ -229,7 +258,7 @@ test('destroy clears subscriptions, animation, age refresh timers, planning and 
     assert.equal(h.workers[0].terminated, true);
     assert.equal(h.timers.size, 0);
     assert.equal(h.window.canvasSnakeDebug, undefined);
-    const targets = [h.canvas, h.window, ...Object.values(h.ids), ...h.views];
+    const targets = [h.canvas, h.window, ...Object.values(h.ids), ...h.views, ...h.resets];
     assert.ok(targets.every(node => [...node.events.values()].every(listeners => listeners.size === 0)));
     assert.equal(c.running, false);
 });

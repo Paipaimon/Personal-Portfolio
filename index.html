@@ -571,9 +571,20 @@
             </nav>
         </section>
 
-        <section id="canvas-tetris-controls" aria-label="离开俄罗斯方块区域" hidden>
-            <nav class="canvas-region-links" aria-label="画布区域">
+        <section id="canvas-snake-controls" class="canvas-game-controls" aria-label="贪吃蛇操作" hidden>
+            <nav class="canvas-region-links" aria-label="贪吃蛇操作与区域跳转">
+                <button type="button" data-canvas-reset="snake" title="重新开始当前种子的本局游戏">↻ 重置</button>
                 <button type="button" data-canvas-view="profile">↖ 关于我</button>
+                <button type="button" data-canvas-view="tetris">↙ 俄罗斯方块</button>
+                <button type="button" data-canvas-view="default">↘ 返回首页</button>
+            </nav>
+        </section>
+
+        <section id="canvas-tetris-controls" class="canvas-game-controls" aria-label="俄罗斯方块操作" hidden>
+            <nav class="canvas-region-links" aria-label="俄罗斯方块操作与区域跳转">
+                <button type="button" data-canvas-reset="tetris" title="清空棋盘并重新开始">↻ 重置</button>
+                <button type="button" data-canvas-view="profile">↖ 关于我</button>
+                <button type="button" data-canvas-view="snake">↗ 贪吃蛇</button>
                 <button type="button" data-canvas-view="default">↘ 返回首页</button>
             </nav>
         </section>

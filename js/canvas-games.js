@@ -355,7 +355,7 @@
         constructor({ random = Math.random } = {}) {
             this.random = random;
             this.columns = 10;
-            this.rows = 20;
+            this.rows = 16;
             this.interval = 0.075;
             this.rounds = 0;
             this.reset();

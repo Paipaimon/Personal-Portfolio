@@ -136,6 +136,7 @@ body.canvas-exploring { overflow-y: hidden; touch-action: none; }
 }
 
 #canvas-profile,
+#canvas-snake-controls,
 #canvas-tetris-controls {
     position: absolute;
     top: 0;
@@ -179,6 +180,29 @@ body.canvas-exploring { overflow-y: hidden; touch-action: none; }
     font-size: 23px;
     font-weight: 500;
     object-fit: cover;
+}
+
+.canvas-profile-avatar-button {
+    width: 58px;
+    height: 58px;
+    flex: none;
+    padding: 0;
+    border: 1px solid var(--canvas-axis-color);
+    background: var(--canvas-bg-color);
+    overflow: hidden;
+    touch-action: manipulation;
+    transform: perspective(400px) rotateX(var(--avatar-rx, 0deg)) rotateY(var(--avatar-ry, 0deg));
+    transition: transform .18s ease, box-shadow .18s ease !important;
+}
+.canvas-profile-avatar-button .canvas-profile-avatar { width: 100%; height: 100%; border: 0; }
+.canvas-profile-avatar-button:hover,
+.canvas-profile-avatar-button:focus-visible { box-shadow: 0 0 16px var(--canvas-axis-color); }
+.canvas-profile-avatar-button.is-waving .canvas-profile-avatar { animation: avatar-wave .65s ease; }
+@keyframes avatar-wave {
+    0%, 100% { transform: rotate(0) scale(1); }
+    25% { transform: rotate(-8deg) scale(1.08); }
+    50% { transform: rotate(6deg) scale(1.08); }
+    75% { transform: rotate(-3deg) scale(1.04); }
 }
 
 #canvas-profile-title {
@@ -273,7 +297,11 @@ body.canvas-exploring { overflow-y: hidden; touch-action: none; }
 
 .canvas-region-links button:hover { color: var(--canvas-highlight-color); text-decoration: underline; }
 
-#canvas-tetris-controls { width: 500px; padding-top: 12px; }
+.canvas-game-controls { padding-top: 4px; }
+#canvas-snake-controls { width: 600px; }
+#canvas-tetris-controls { width: 500px; }
+.canvas-game-controls .canvas-region-links { gap: 6px 16px; }
+.canvas-game-controls [data-canvas-reset] { color: var(--canvas-highlight-color); }
 
 /* Compensate for the world camera fitting full boards on narrow screens. */
 @media (max-width: 600px) {
@@ -286,6 +314,7 @@ body.canvas-exploring { overflow-y: hidden; touch-action: none; }
     .canvas-profile-link svg { width: 25px; height: 25px; }
     .canvas-region-links button { font-size: 18px !important; line-height: 24px; }
     .canvas-profile-age { font-size: 16px; line-height: 22px; }
+    .canvas-game-controls .canvas-region-links { gap: 6px 14px; }
     body:not(.canvas-exploring) .canvas-profile-link { width: 44px; height: 44px; }
     body:not(.canvas-exploring) .canvas-profile-link svg { width: 22px; height: 22px; }
     body:not(.canvas-exploring) #canvas-profile > .canvas-region-links { gap: 8px 10px; }
@@ -295,4 +324,6 @@ body.canvas-exploring { overflow-y: hidden; touch-action: none; }
 @media (prefers-reduced-motion: reduce) {
     #canvas-entry::before { animation: none; opacity: .14; }
     #canvas-world-ui > button span { transition: none !important; }
+    .canvas-profile-avatar-button { transform: none; transition: none !important; }
+    .canvas-profile-avatar-button .canvas-profile-avatar { animation: none !important; }
 }

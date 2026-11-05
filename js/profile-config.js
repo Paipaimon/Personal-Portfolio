@@ -12,16 +12,16 @@
     const profile = {
         name: 'AckerLi',
         birthDate: '2004-11-16',
-        title: '创意 / 技术 / 一些有趣的小项目',
-        bio: '探索创意与技术的结合。\n在网格里，记录想法与日常。',
-        location: '中国',
-        avatar: '',
+        title: '运维 / 程序 / 学生',
+        bio: '一个热爱技术的学生\n喜欢折腾各种软件和硬件\n偶尔写写代码',
+        location: '四川',
+        avatar: 'assets/profile.png',
         links: [
             { label: '哔哩哔哩', icon: 'bilibili', url: 'https://space.bilibili.com/33230715' },
             { label: '网易云音乐', icon: 'netease', url: 'https://music.163.com/#/user/home?id=482756030' },
             { label: 'QQ', icon: 'qq', url: 'https://qm.qq.com/q/7s6vz9hfCE' },
             { label: '电子邮箱', icon: 'mail', url: 'mailto:1602294513@qq.com' },
-            { label: 'GitHub', icon: 'github', url: 'https://github.com/1602294513' }
+            { label: 'GitHub', icon: 'github', url: 'https://github.com/Paipaimon' }
         ]
     };
 

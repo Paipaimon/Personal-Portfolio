@@ -12,10 +12,10 @@ class CanvasBackgroundController {
         // Grid-cell bounds, independent of viewport size or camera position.
         this.regions = {
             profile: { x: -12, y: -10, w: 10, h: 9 },
-            snake: { x: 2, y: -16, w: 12, h: 12 },
-            tetris: { x: -12, y: 2, w: 10, h: 20 },
+            snake: { x: 2, y: -14, w: 12, h: 12 },
+            tetris: { x: -12, y: 2, w: 10, h: 16 },
             profileView: { x: -12, y: -10, w: 12, h: 10 },
-            overview: { x: -14, y: -18, w: 30, h: 42 }
+            overview: { x: -14, y: -16, w: 30, h: 36 }
         };
         this.snake = new CanvasGames.AutoSnake();
         this.tetris = new CanvasGames.AutoTetris();
@@ -43,12 +43,16 @@ class CanvasBackgroundController {
         this.nav = document.getElementById('canvas-nav');
         this.profile = document.getElementById('canvas-profile');
         this.homepage = document.getElementById('homepage-content');
+        this.snakeControls = document.getElementById('canvas-snake-controls');
         this.tetrisControls = document.getElementById('canvas-tetris-controls');
         CanvasProfile.render(this.profile, window.PORTFOLIO_PROFILE);
         this.listen(this.entry, 'click', () => this.focusRegion('profile'));
         this.listen(this.exploreButton, 'click', () => this.enterExploration());
         document.querySelectorAll('[data-canvas-view]').forEach(button => {
             this.listen(button, 'click', () => this.focusRegion(button.dataset.canvasView));
+        });
+        document.querySelectorAll('[data-canvas-reset]').forEach(button => {
+            this.listen(button, 'click', () => this.resetGame(button.dataset.canvasReset));
         });
         this.listen(this.canvas, 'pointerdown', event => this.pointerDown(event));
         this.listen(this.canvas, 'pointermove', event => this.pointerMove(event));
@@ -140,8 +144,18 @@ class CanvasBackgroundController {
         this.exploreButton.hidden = enabled;
     }
 
+    resetGame(name) {
+        if (name === 'snake') {
+            if (this.snakePlanning) this.planSnake(this.snake.seed);
+            else {
+                this.snake.reset();
+                console.info(`[CanvasSnake] reset seed: ${this.snake.seed}`);
+            }
+        } else if (name === 'tetris') this.tetris.reset();
+        this.draw();
+    }
+
     enterExploration() {
-        if (!this.exploring) this.savedScrollY = window.scrollY;
         this.setExploration(true);
         this.focusRegion('overview');
     }
@@ -190,11 +204,13 @@ class CanvasBackgroundController {
             this.defaultView = true;
             this.focusedView = name;
             this.moveCamera({ offsetX: 0, offsetY: 0, scale: 1 });
-            window.scrollTo(0, this.savedScrollY || 0);
+            // Always land on the homepage introduction, regardless of the
+            // document scroll position from which the canvas was entered.
+            window.scrollTo(0, 0);
+            this.entry.focus?.({ preventScroll: true });
             return;
         }
         if (!this.regions[name]) return;
-        if (this.defaultView) this.savedScrollY = window.scrollY;
         this.defaultView = false;
         this.focusedView = name;
         window.scrollTo(0, 0);
@@ -206,12 +222,14 @@ class CanvasBackgroundController {
         const bottom = this.exploring ? 140 : 100;
         const availableWidth = Math.max(180, this.state.width - 48);
         const availableHeight = Math.max(180, this.state.height - top - bottom);
-        const scale = this.exploring ? Math.min(name === 'profile' ? 1.2 : 1, availableWidth / (r.w * 50), availableHeight / ((r.h + 1) * 50)) : 1;
+        const isGame = name === 'snake' || name === 'tetris';
+        const regionHeight = (r.h + (isGame ? 1 : 0)) * 50;
+        const scale = this.exploring ? Math.min(name === 'profile' ? 1.2 : 1, availableWidth / (r.w * 50), availableHeight / (regionHeight + 50)) : 1;
         const regionWidth = !this.exploring && name === 'profile' ? Math.min(r.w * 50, availableWidth) : r.w * 50;
         const target = {
             scale,
             offsetX: this.state.width / 2 - (r.x * 50 + regionWidth / 2) * scale,
-            offsetY: top + availableHeight / 2 - (r.y + r.h / 2) * 50 * scale
+            offsetY: top + availableHeight / 2 - (r.y * 50 + regionHeight / 2) * scale
         };
         this.moveCamera(target, animate);
     }
@@ -335,6 +353,10 @@ class CanvasBackgroundController {
             const r = this.regions[name];
             return gridX >= r.x - 1 && gridX < r.x + r.w + 1 && gridY >= r.y - 1 && gridY < r.y + r.h + 1;
         })) return;
+        if (['snake', 'tetris'].some(name => {
+            const r = this.regions[name];
+            return gridX >= r.x && gridX < r.x + r.w && gridY === r.y + r.h;
+        })) return;
         if (this.state.erasableBlocks.some(block => block.gridX === gridX && block.gridY === gridY)) return;
         const keys = this.themeManager.getAvailableThemes();
         const targetThemeKey = keys[Math.floor(Math.random() * keys.length)];
@@ -371,7 +393,7 @@ class CanvasBackgroundController {
         ctx.globalAlpha = 1;
         this.drawRegion('profile', '01 / 关于我', '关于我 · 媒体与联系', theme);
         this.drawRegion('snake', '02 / 自动贪吃蛇', '', theme);
-        this.drawRegion('tetris', '03 / 自动俄罗斯方块', `10 × 20   ·   已消除 ${this.tetris.lines} 行`, theme);
+        this.drawRegion('tetris', '03 / 自动俄罗斯方块', `10 × 16   ·   已消除 ${this.tetris.lines} 行`, theme);
         const snake = this.regions.snake;
         this.snake.body.forEach((cell, index) => {
             ctx.fillStyle = c.highlightColor;
@@ -442,7 +464,11 @@ class CanvasBackgroundController {
         place(this.homeButton, -1, -1, 50, 50);
         place(this.snakeLink, 0, -1, 50, 50);
         place(this.tetrisLink, -1, 0, 50, 50);
-        place(this.tetrisControls, -12, 22.3, 500, 50);
+        for (const name of ['snake', 'tetris']) {
+            const game = this.regions[name];
+            const controls = name === 'snake' ? this.snakeControls : this.tetrisControls;
+            place(controls, game.x, game.y + game.h + 0.2, game.w * 50, 40);
+        }
     }
 
     loop(time) {

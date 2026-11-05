@@ -12,11 +12,20 @@ class Element {
         this.attributes = {};
         this._text = '';
         this.hidden = false;
+        this.events = new Map();
+        this.style = { setProperty(key, value) { this[key] = value; } };
+        this.classList = {
+            add: key => { this.className = [...new Set([...this.className.split(/\s+/), key])].join(' ').trim(); },
+            remove: key => { this.className = this.className.split(/\s+/).filter(value => value !== key).join(' '); },
+            contains: key => this.className.split(/\s+/).includes(key)
+        };
     }
     set textContent(value) { this._text = String(value); this.childNodes = []; }
     get textContent() { return this._text + this.childNodes.map(node => node.textContent).join(''); }
     setAttribute(key, value) { this.attributes[key] = value; }
-    addEventListener() {}
+    addEventListener(type, callback) { if (!this.events.has(type)) this.events.set(type, []); this.events.get(type).push(callback); }
+    dispatch(type, event = {}) { for (const callback of this.events.get(type) || []) callback(event); }
+    getBoundingClientRect() { return { left: 0, top: 0, width: 58, height: 58 }; }
     appendChild(node) { this.childNodes.push(node); return node; }
     replaceChildren(...children) { this._text = ''; this.childNodes = children; }
     querySelector(selector) {
@@ -32,8 +41,9 @@ class Element {
     }
 }
 
-function fixture() {
+function fixture(reducedMotion = false) {
     const document = {
+        defaultView: { matchMedia: () => ({ matches: reducedMotion }) },
         baseURI: 'https://portfolio.example/',
         createElement(tag) { return new Element(tag, this); },
         createElementNS(_, tag) { return this.createElement(tag); }
@@ -67,8 +77,31 @@ test('profile configuration contains the supplied identity and five exact public
         ['netease', 'https://music.163.com/#/user/home?id=482756030'],
         ['qq', 'https://qm.qq.com/q/7s6vz9hfCE'],
         ['mail', 'mailto:1602294513@qq.com'],
-        ['github', 'https://github.com/1602294513']
+        ['github', 'https://github.com/Paipaimon']
     ]);
+});
+
+test('configured avatar tilts on pointer movement, waves on click and respects reduced motion', () => {
+    const { profile } = fixture();
+    CanvasProfile.render(profile, config);
+    const avatar = profile.querySelector('.canvas-profile-avatar-button');
+    assert.equal(avatar.type, 'button');
+    assert.equal(avatar.attributes['aria-label'], '与 AckerLi 的头像互动');
+    assert.equal(profile.querySelector('img').src, 'https://portfolio.example/assets/profile.png');
+    avatar.dispatch('pointermove', { clientX: 58, clientY: 0, pointerType: 'mouse' });
+    assert.equal(avatar.style['--avatar-rx'], '12deg');
+    assert.equal(avatar.style['--avatar-ry'], '12deg');
+    avatar.dispatch('pointerleave');
+    assert.equal(avatar.style['--avatar-rx'], '0deg');
+    avatar.dispatch('click');
+    assert.ok(avatar.classList.contains('is-waving'));
+    avatar.dispatch('animationend');
+    assert.equal(avatar.classList.contains('is-waving'), false);
+    const reduced = fixture(true).profile;
+    CanvasProfile.render(reduced, config);
+    const still = reduced.querySelector('.canvas-profile-avatar-button');
+    still.dispatch('click');
+    assert.equal(still.classList.contains('is-waving'), false);
 });
 
 test('rendered media icons stay at the bottom of profile content and age refresh preserves links and navigation', () => {

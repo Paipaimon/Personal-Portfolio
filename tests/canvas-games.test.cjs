@@ -214,24 +214,26 @@ test('snake fixed time steps do not depend on frame rate or advance on invalid t
 
 test('tetris clears complete rows, preserves partial rows and awards multi-line scores', () => {
     const game = new AutoTetris({ random: seededRandom(1) });
-    game.board[19].fill(2);
-    game.board[18].fill(3);
-    game.board[17][4] = 5;
+    assert.equal(game.columns, 10);
+    assert.equal(game.rows, 16);
+    game.board[15].fill(2);
+    game.board[14].fill(3);
+    game.board[13][4] = 5;
     assert.equal(game.clearLines(), 2);
     assert.equal(game.lines, 2);
     assert.equal(game.score, 300);
-    assert.equal(game.board.length, 20);
-    assert.equal(game.board[19][4], 5);
-    assert.equal(game.board[19].filter(Boolean).length, 1);
+    assert.equal(game.board.length, 16);
+    assert.equal(game.board[15][4], 5);
+    assert.equal(game.board[15].filter(Boolean).length, 1);
     assert.ok(game.board[0].every(cell => !cell));
 });
 
 test('tetris planner completes an available line and visibly drops its piece before locking', () => {
     const game = new AutoTetris({ random: seededRandom(2) });
-    game.board[19] = [1, 1, 1, 0, 0, 0, 0, 1, 1, 1];
+    game.board[15] = [1, 1, 1, 0, 0, 0, 0, 1, 1, 1];
     const plan = game.planPiece([[1, 1, 1, 1]]);
     assert.equal(plan.x, 3);
-    assert.equal(plan.y, 19);
+    assert.equal(plan.y, 15);
     assert.equal(plan.matrix.length, 1);
     game.piece = { matrix: plan.matrix, x: plan.x, y: -1, color: 1 };
     const initialY = game.piece.y;
@@ -247,10 +249,10 @@ test('tetris detects walls, floor and occupied cells; a top-out starts a clean r
     const game = new AutoTetris({ random: seededRandom(4) });
     assert.equal(game.fits([[1, 1]], -1, 0), false);
     assert.equal(game.fits([[1, 1]], 9, 0), false);
-    assert.equal(game.fits([[1]], 0, 20), false);
-    game.board[19][0] = 4;
-    assert.equal(game.fits([[1]], 0, 19), false);
-    game.board = Array.from({ length: 20 }, () => Array(10).fill(1));
+    assert.equal(game.fits([[1]], 0, 16), false);
+    game.board[15][0] = 4;
+    assert.equal(game.fits([[1]], 0, 15), false);
+    game.board = Array.from({ length: 16 }, () => Array(10).fill(1));
     game.spawnPiece();
     assert.equal(game.rounds, 2);
     assert.equal(game.lines, 0);
@@ -266,7 +268,7 @@ test('tetris runs for thousands of falling steps with valid pieces, cells and li
         let previousRound = game.rounds;
         for (let step = 0; step < 12000; step++) {
             game.step();
-            assert.equal(game.board.length, 20);
+            assert.equal(game.board.length, 16);
             assert.ok(game.board.every(row => row.length === 10 && row.every(cell => Number.isInteger(cell) && cell >= 0 && cell <= 7)));
             assert.ok(game.board.every(row => row.some(cell => !cell)), 'completed rows are removed');
             assert.ok(game.fits(game.piece.matrix, game.piece.x, game.piece.y), 'falling pieces remain legal');

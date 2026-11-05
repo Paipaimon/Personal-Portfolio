@@ -157,7 +157,8 @@ async function main() {
         assert.deepEqual(await evaluate('(() => {const r=document.getElementById("canvas-entry").getBoundingClientRect(); return [r.x,r.y,r.width,r.height];})()'), [0,0,50,50]);
         assert.equal(await evaluate('document.getElementById("canvas-explore").hidden'), false);
         assert.equal(await evaluate('document.getElementById("canvas-nav").hidden'), true);
-        assert.equal(await evaluate('document.querySelectorAll("#paint-tools,#profile-form,#snake-seed-form,#canvas-snake-controls,#snake-plan-status").length'), 0);
+        assert.equal(await evaluate('document.querySelectorAll("#paint-tools,#profile-form,#snake-seed-form,#snake-plan-status").length'), 0);
+        assert.equal(await evaluate('document.getElementById("canvas-snake-controls").hidden'), true);
         assert.equal(await evaluate('typeof canvasController.paint'), 'undefined');
         assert.equal(await evaluate('document.querySelectorAll(".project-item").length > 0'), true);
         await evaluate('window.scrollTo(0,500)'); assert.ok(await evaluate('scrollY') > 0);
@@ -203,13 +204,33 @@ async function main() {
         const links = await evaluate('[...document.querySelectorAll("#canvas-profile .canvas-profile-link")].map(a=>({href:a.href,icon:!!a.querySelector("svg"),target:a.target,rel:a.rel,classes:a.className}))');
         assert.deepEqual(links.map(link=>link.href), [
             'https://space.bilibili.com/33230715', 'https://music.163.com/#/user/home?id=482756030',
-            'https://qm.qq.com/q/7s6vz9hfCE', 'mailto:1602294513@qq.com', 'https://github.com/1602294513'
+            'https://qm.qq.com/q/7s6vz9hfCE', 'mailto:1602294513@qq.com', 'https://github.com/Paipaimon'
         ]);
         assert.ok(links.every(link=>link.icon && link.target === '_blank' && /noopener/.test(link.rel)));
         assert.match(links[1].classes,/netease/); assert.match(links[2].classes,/qq/);
         assert.equal(await evaluate('(() => {const p=document.querySelector(".canvas-profile-links").getBoundingClientRect(),n=document.querySelector("#canvas-profile > nav").getBoundingClientRect();return p.bottom <= n.top;})()'), true);
         await screenshot('desktop-profile');
     });
+    await check('local profile avatar loads and responds to hover, click, keyboard and reduced motion', async () => {
+        await waitFor(()=>evaluate('document.querySelector(".canvas-profile-avatar-button img")?.naturalWidth > 0'),'local avatar image');
+        assert.equal(await evaluate('new URL(document.querySelector(".canvas-profile-avatar-button img").src).pathname'), '/assets/profile.png');
+        const point=await evaluate('(() => { const r=document.querySelector(".canvas-profile-avatar-button").getBoundingClientRect(); return {x:r.right-7,y:r.top+7}; })()');
+        await send('Input.dispatchMouseEvent',{type:'mouseMoved',...point});
+        assert.ok(await evaluate('Math.abs(parseFloat(document.querySelector(".canvas-profile-avatar-button").style.getPropertyValue("--avatar-rx")))') > 0);
+        await click('.canvas-profile-avatar-button');
+        assert.equal(await evaluate('document.querySelector(".canvas-profile-avatar-button").classList.contains("is-waving")'),true,'mouse click starts the avatar animation');
+        await waitFor(()=>evaluate('!document.querySelector(".canvas-profile-avatar-button").classList.contains("is-waving")'),'mouse avatar animation completes');
+        await evaluate('document.querySelector(".canvas-profile-avatar-button").focus()');
+        await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',text:'\r',unmodifiedText:'\r',windowsVirtualKeyCode:13});
+        await send('Input.dispatchKeyEvent',{type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});
+        assert.equal(await evaluate('document.querySelector(".canvas-profile-avatar-button").classList.contains("is-waving")'),true,'Enter starts the avatar animation');
+        await waitFor(()=>evaluate('!document.querySelector(".canvas-profile-avatar-button").classList.contains("is-waving")'),'keyboard avatar animation completes');
+        await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});
+        await click('.canvas-profile-avatar-button');
+        assert.equal(await evaluate('document.querySelector(".canvas-profile-avatar-button").classList.contains("is-waving")'),false);
+        await send('Emulation.setEmulatedMedia',{features:[]});
+    });
+    if (process.env.CANVAS_QA_AVATAR_ONLY) { assert.deepEqual(failures,[]); return; }
     await check('exploration menu alone enables anchored wheel zoom and exits through an animation', async () => {
         await click('#canvas-explore'); await settleCamera();
         assert.equal(await evaluate('canvasController.exploring'), true);
@@ -241,7 +262,39 @@ async function main() {
         const beforeRound = await evaluate('canvasSnakeDebug.seed');
         await evaluate('canvasController.snake.won=true; canvasController.snake.restartIn=0');
         await waitFor(()=>evaluate(`canvasSnakeDebug.seed !== ${JSON.stringify(beforeRound)}`),'new random seed for next round');
-        assert.equal(await evaluate('document.querySelectorAll("#snake-seed-form,#canvas-snake-controls,#snake-plan-status").length'),0);
+        assert.equal(await evaluate('document.querySelectorAll("#snake-seed-form,#snake-plan-status").length'),0);
+    });
+    await check('game boards have two-cell axis gaps and working reset and cross-region links below them', async () => {
+        await resetDefault(); await click('#canvas-explore'); await settleCamera();
+        assert.deepEqual(await evaluate('({...canvasController.regions.snake})'),{x:2,y:-14,w:12,h:12});
+        assert.deepEqual(await evaluate('({...canvasController.regions.tetris})'),{x:-12,y:2,w:10,h:16});
+        await navigate('snake');
+        const snakeBounds=await evaluate('(() => {const c=canvasController,s=c.state,r=c.regions.snake,b=document.getElementById("canvas-snake-controls").getBoundingClientRect();return {top:b.top,bottom:b.bottom,boardBottom:s.offsetY+(r.y+r.h)*50*s.scale};})()');
+        assert.ok(snakeBounds.top>snakeBounds.boardBottom && snakeBounds.bottom<1000);
+        await waitFor(()=>evaluate('!canvasController.snakePlanning'),'ready to reset snake',45000);
+        const seed=await evaluate('canvasSnakeDebug.seed');
+        await evaluate('canvasController.snake.steps=99;canvasController.snake.score=9');
+        await click('#canvas-snake-controls [data-canvas-reset=snake]');
+        assert.equal(await evaluate('canvasSnakeDebug.seed'),seed);
+        assert.ok(await evaluate('canvasController.snake.steps')<5);
+        assert.equal(await evaluate('canvasController.snake.score'),0);
+        await click('#canvas-snake-controls [data-canvas-view=tetris]'); await settleCamera();
+        assert.equal(await evaluate('canvasController.focusedView'),'tetris');
+        assert.deepEqual(await evaluate('[canvasController.tetris.columns,canvasController.tetris.rows]'),[10,16]);
+        const tetrisBounds=await evaluate('(() => {const c=canvasController,s=c.state,r=c.regions.tetris,b=document.getElementById("canvas-tetris-controls").getBoundingClientRect();return {top:b.top,bottom:b.bottom,boardBottom:s.offsetY+(r.y+r.h)*50*s.scale};})()');
+        assert.ok(tetrisBounds.top>tetrisBounds.boardBottom && tetrisBounds.bottom<1000);
+        await evaluate('canvasController.tetris.board[15][0]=4;canvasController.tetris.lines=3;canvasController.tetris.score=100');
+        await click('#canvas-tetris-controls [data-canvas-reset=tetris]');
+        assert.deepEqual(await evaluate('[canvasController.tetris.lines,canvasController.tetris.score]'),[0,0]);
+        assert.equal(await evaluate('canvasController.tetris.board.every(row=>row.every(cell=>!cell))'),true);
+        await screenshot('desktop-tetris-controls');
+        await click('#canvas-tetris-controls [data-canvas-view=snake]'); await settleCamera();
+        await screenshot('desktop-snake-controls');
+        await click('#canvas-snake-controls [data-canvas-view=default]'); await settleCamera();
+        await evaluate('window.scrollTo(0,500)');
+        await click('#canvas-entry'); await settleCamera();
+        await navigate('default');
+        assert.deepEqual(await evaluate('[scrollY,canvasController.state.offsetX,canvasController.state.offsetY,canvasController.state.scale]'),[0,0,0,1]);
     });
     await check('automatic tetris and all four themes remain usable in exploration', async () => {
         await click('#canvas-explore'); await settleCamera(); await navigate('tetris');
@@ -269,6 +322,10 @@ async function main() {
         assert.ok(bounds.links.left>=0 && bounds.links.right<=390 && bounds.links.bottom<=bounds.nav.top);
         assert.ok(bounds.age.top>=0 && bounds.age.bottom<=844);
         await screenshot('mobile-profile');
+        const avatarPoint=await evaluate('(() => {const r=document.querySelector(".canvas-profile-avatar-button").getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2};})()');
+        await send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{...avatarPoint,id:10}]});
+        await send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+        await waitFor(()=>evaluate('document.querySelector(".canvas-profile-avatar-button").classList.contains("is-waving")'),'touch avatar interaction');
         // This gesture begins on profile DOM rather than the canvas. It must
         // not trigger the browser's native page pinch zoom either.
         await send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 80, y: 330, id: 11 }, { x: 210, y: 330, id: 12 }] });
@@ -285,7 +342,12 @@ async function main() {
         assert.ok(await evaluate('canvasController.state.scale')>exploreScale,'exploration pinch zoom is enabled');
         await navigate('overview'); await screenshot('mobile-overview');
         await navigate('snake'); await screenshot('mobile-snake');
-        await navigate('tetris'); await screenshot('mobile-tetris');
+        const gameControlsFit=id=>evaluate(`(() => {const r=document.getElementById(${JSON.stringify(id)}).getBoundingClientRect(),m=document.getElementById("canvas-nav").getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&r.top>0&&r.bottom<=m.top;})()`);
+        assert.equal(await gameControlsFit('canvas-snake-controls'),true);
+        await click('#canvas-snake-controls [data-canvas-view=tetris]'); await settleCamera(); await screenshot('mobile-tetris');
+        assert.equal(await gameControlsFit('canvas-tetris-controls'),true);
+        await click('#canvas-tetris-controls [data-canvas-reset=tetris]');
+        assert.equal(await evaluate('canvasController.tetris.lines'),0);
         await navigate('default');
         assert.deepEqual(await evaluate('[canvasController.exploring,canvasController.state.offsetX,canvasController.state.offsetY,canvasController.state.scale]'),[false,0,0,1]);
         assert.deepEqual(await evaluate('[innerWidth,innerHeight]'),[390,844]);

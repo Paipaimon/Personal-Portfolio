@@ -94,6 +94,37 @@
         return age;
     }
 
+    function interactiveAvatar(document, visual, name) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'canvas-profile-avatar-button';
+        button.title = '移动看看，点击打个招呼';
+        button.setAttribute('aria-label', `与 ${name} 的头像互动`);
+        button.appendChild(visual);
+        const reducedMotion = () => document.defaultView?.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+        const resetTilt = () => {
+            button.style.setProperty('--avatar-rx', '0deg');
+            button.style.setProperty('--avatar-ry', '0deg');
+        };
+        button.addEventListener('pointermove', event => {
+            if (reducedMotion() || event.pointerType === 'touch') return;
+            const rect = button.getBoundingClientRect();
+            if (!rect.width || !rect.height) return;
+            const x = Math.max(-1, Math.min(1, (event.clientX - rect.left) / rect.width * 2 - 1));
+            const y = Math.max(-1, Math.min(1, (event.clientY - rect.top) / rect.height * 2 - 1));
+            button.style.setProperty('--avatar-rx', `${-y * 12}deg`);
+            button.style.setProperty('--avatar-ry', `${x * 12}deg`);
+        });
+        button.addEventListener('pointerleave', resetTilt);
+        button.addEventListener('blur', resetTilt);
+        // Native button clicks also cover touch taps, Enter and Space.
+        button.addEventListener('click', () => {
+            if (!reducedMotion()) button.classList.add('is-waving');
+        });
+        button.addEventListener('animationend', () => button.classList.remove('is-waving'));
+        return button;
+    }
+
     function render(element, config = {}) {
         const document = element.ownerDocument;
         const content = element.querySelector('[data-profile-content]') || element;
@@ -119,8 +150,8 @@
             photo.alt = '';
             photo.referrerPolicy = 'no-referrer';
             photo.addEventListener('error', () => photo.replaceWith(avatar), { once: true });
-            heading.appendChild(photo);
-        } else heading.appendChild(avatar);
+            heading.appendChild(interactiveAvatar(document, photo, name));
+        } else heading.appendChild(interactiveAvatar(document, avatar, name));
         const identity = document.createElement('div');
         const title = text('h2', '', name);
         title.id = 'canvas-profile-title';
