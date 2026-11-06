@@ -91,6 +91,12 @@ body { touch-action: pan-y; }
 #canvas-snake-link:hover::before,
 #canvas-tetris-link:hover::before { opacity: .2; animation: none; }
 
+.origin-arrow { display: block; width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+#canvas-entry .origin-arrow { transform: rotate(-90deg); }
+#canvas-home .origin-arrow { transform: rotate(90deg); }
+#canvas-tetris-link .origin-arrow { transform: rotate(180deg); }
+#canvas-entry:hover span { transform: translate(-3px, -3px); }
+
 #canvas-snake-link:hover span { transform: translate(3px, -3px); }
 #canvas-tetris-link:hover span { transform: translate(-3px, 3px); }
 #canvas-home:hover span { transform: translate(3px, 3px); }

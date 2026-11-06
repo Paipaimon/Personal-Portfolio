@@ -90,7 +90,7 @@
 
 贪吃蛇从开局计算当前食物的最短路径，并模拟吃到后的脱困能力；根据蛇身和食物动态重排安全路线，不沿固定环路刷分。Worker 后台试算 8 条完整获胜候选，选择总步数最少的一条播放；这里的最少步数是候选之间的比较，不代表整局全局最优的数学证明。每次打开页面或完成一局都会生成新随机种子，种子和计算结果只在控制台输出，棋盘底部没有种子控件或状态文字。
 
-控制台可执行 `canvasSnakeDebug.newSeed()` 生成新种子，执行 `canvasSnakeDebug.restart('某个种子')` 复现路线，读取 `canvasSnakeDebug.seed` 查看当前种子。棋盘下方「重置」重新开始当前种子的本局游戏。Worker 不可用时降级为实时安全寻路。俄罗斯方块的「重置」会清空棋盘、分数和消行数，保持自动落子、消行及重开。
+控制台可执行 `canvasSnakeDebug.newSeed()` 生成新种子，执行 `canvasSnakeDebug.restart('某个种子')` 复现路线，读取 `canvasSnakeDebug.seed` 查看当前种子。贪吃蛇标题下显示尺寸和当前得分，棋盘下方「重置」每次生成新种子并重新计算路线。Worker 不可用时降级为实时安全寻路。俄罗斯方块的「重置」会清空棋盘、分数和消行数，保持自动落子、消行及重开。
 
 逻辑与坐标交互测试：`node --test tests/canvas-games.test.cjs tests/canvas-world.test.cjs tests/canvas-profile.test.cjs`。本机安装 Edge 后可运行 `node tests/canvas-browser.test.cjs`，验证资料和年龄、四角导航、模式缩放限制、控制台种子、真实鼠标/触摸和四套主题，并生成截图；其他 Chromium 路径可通过 `EDGE_PATH` 指定。
 

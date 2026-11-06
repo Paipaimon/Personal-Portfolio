@@ -184,6 +184,8 @@ async function main() {
         for (const [id, view] of [['canvas-entry','profile'],['canvas-snake-link','snake'],['canvas-tetris-link','tetris'],['canvas-home','default']]) {
             await resetDefault();
             await drag(await exposedGridPoint(), 220, 220);
+            const arrowSizes=await evaluate('[...document.querySelectorAll(".origin-arrow")].map(e=>{const r=e.getBoundingClientRect();return [Math.round(r.width),Math.round(r.height)];})');
+            assert.deepEqual(arrowSizes,[[26,26],[26,26],[26,26],[26,26]]);
             assert.deepEqual(await evaluate('[canvasController.state.offsetX,canvasController.state.offsetY]'), [220,220]);
             if (view === 'profile') await screenshot('desktop-origin-links');
             await click(`#${id}`);
@@ -275,7 +277,7 @@ async function main() {
         const seed=await evaluate('canvasSnakeDebug.seed');
         await evaluate('canvasController.snake.steps=99;canvasController.snake.score=9');
         await click('#canvas-snake-controls [data-canvas-reset=snake]');
-        assert.equal(await evaluate('canvasSnakeDebug.seed'),seed);
+        assert.notEqual(await evaluate('canvasSnakeDebug.seed'),seed);
         assert.ok(await evaluate('canvasController.snake.steps')<5);
         assert.equal(await evaluate('canvasController.snake.score'),0);
         await click('#canvas-snake-controls [data-canvas-view=tetris]'); await settleCamera();

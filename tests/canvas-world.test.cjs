@@ -126,8 +126,13 @@ test('game edges stay two cells from both axes and reset controls follow their b
     const seed = c.snake.seed;
     c.snake.steps = 40; c.snake.score = 3;
     h.resets[0].dispatch('click');
-    assert.equal(c.snake.seed, seed);
+    assert.notEqual(c.snake.seed, seed);
     assert.equal(c.snake.steps, 0); assert.equal(c.snake.score, 0);
+    const subtitles = [];
+    const drawRegion = c.drawRegion.bind(c);
+    c.drawRegion = (name, title, subtitle, theme) => { if (name === 'snake') subtitles.push(subtitle); drawRegion(name,title,subtitle,theme); };
+    c.snake.score = 7; c.draw();
+    assert.equal(subtitles.at(-1), '12 × 12 · 得分 7');
     c.tetris.board[15].fill(5); c.tetris.lines = 3; c.tetris.score = 100;
     h.resets[1].dispatch('click');
     assert.equal(c.tetris.lines, 0); assert.equal(c.tetris.score, 0);

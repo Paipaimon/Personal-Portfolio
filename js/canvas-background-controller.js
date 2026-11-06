@@ -146,11 +146,7 @@ class CanvasBackgroundController {
 
     resetGame(name) {
         if (name === 'snake') {
-            if (this.snakePlanning) this.planSnake(this.snake.seed);
-            else {
-                this.snake.reset();
-                console.info(`[CanvasSnake] reset seed: ${this.snake.seed}`);
-            }
+            this.planSnake();
         } else if (name === 'tetris') this.tetris.reset();
         this.draw();
     }
@@ -392,7 +388,7 @@ class CanvasBackgroundController {
         });
         ctx.globalAlpha = 1;
         this.drawRegion('profile', '01 / 关于我', '关于我 · 媒体与联系', theme);
-        this.drawRegion('snake', '02 / 自动贪吃蛇', '', theme);
+        this.drawRegion('snake', '02 / 自动贪吃蛇', `${this.snake.size} × ${this.snake.size} · 得分 ${this.snake.score}`, theme);
         this.drawRegion('tetris', '03 / 自动俄罗斯方块', `10 × 16   ·   已消除 ${this.tetris.lines} 行`, theme);
         const snake = this.regions.snake;
         this.snake.body.forEach((cell, index) => {
