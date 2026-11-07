@@ -9,9 +9,7 @@ body { touch-action: pan-y; }
 
 #homepage-content {
     position: relative;
-    transform-origin: 0 0;
     pointer-events: none;
-    transition: none !important;
 }
 
 #homepage-content footer a { pointer-events: auto; }
@@ -94,11 +92,11 @@ body { touch-action: pan-y; }
 .origin-arrow { display: block; width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 #canvas-entry .origin-arrow { transform: rotate(-90deg); }
 #canvas-home .origin-arrow { transform: rotate(90deg); }
-#canvas-tetris-link .origin-arrow { transform: rotate(180deg); }
+#canvas-snake-link .origin-arrow { transform: rotate(180deg); }
 #canvas-entry:hover span { transform: translate(-3px, -3px); }
 
-#canvas-snake-link:hover span { transform: translate(3px, -3px); }
-#canvas-tetris-link:hover span { transform: translate(-3px, 3px); }
+#canvas-tetris-link:hover span { transform: translate(3px, -3px); }
+#canvas-snake-link:hover span { transform: translate(-3px, 3px); }
 #canvas-home:hover span { transform: translate(3px, 3px); }
 #canvas-world-ui > button span { transition: transform .2s ease !important; }
 
@@ -133,7 +131,8 @@ body { touch-action: pan-y; }
 }
 #canvas-nav button:hover, #canvas-nav button[aria-pressed="true"] { border-color: var(--canvas-axis-color); }
 #canvas-nav > span { width: 100%; text-align: center; opacity: .6; font-size: 10px; }
-body.canvas-exploring #homepage-content { visibility: hidden; }
+body.canvas-exploring #homepage-content,
+body.canvas-section-open #homepage-content { visibility: hidden; }
 body.canvas-exploring { overflow-y: hidden; touch-action: none; }
 
 @keyframes canvas-entry-glow {

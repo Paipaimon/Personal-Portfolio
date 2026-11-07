@@ -113,10 +113,8 @@ test('normal mode blocks wheel, Ctrl-wheel, direct zoom and pinch, including aft
 
 test('game edges stay two cells from both axes and reset controls follow their boards', () => {
     const h = harness(), c = h.controller;
-    assert.deepEqual({ ...c.regions.snake }, { x: 2, y: -14, w: 12, h: 12 });
-    assert.deepEqual({ ...c.regions.tetris }, { x: -12, y: 2, w: 10, h: 16 });
-    assert.equal(c.regions.snake.y + c.regions.snake.h, -2);
-    assert.equal(c.regions.tetris.x + c.regions.tetris.w, -2);
+    assert.deepEqual({ ...c.regions.snake }, { x: -14, y: 2, w: 12, h: 12 });
+    assert.deepEqual({ ...c.regions.tetris }, { x: 2, y: -18, w: 10, h: 16 });
     assert.equal(c.tetris.rows, 16);
     c.enterExploration(); c.focusRegion('snake');
     const snake = c.regions.snake;
@@ -147,7 +145,7 @@ test('game edges stay two cells from both axes and reset controls follow their b
 test('all four origin corner links animate to their target while preserving normal-mode scale', () => {
     const h = harness({ reducedMotion: false }), c = h.controller;
     const regions = JSON.stringify(c.regions);
-    for (const [x, y, view] of [[0, 0, 'profile'], [0, -1, 'snake'], [-1, 0, 'tetris'], [-1, -1, 'default']]) {
+    for (const [x, y, view] of [[0, 0, 'profile'], [0, -1, 'tetris'], [-1, 0, 'snake'], [-1, -1, 'default']]) {
         const point = h.screen(x, y);
         const before = [c.state.offsetX, c.state.offsetY, c.state.scale];
         c.clickAt(point.x, point.y);

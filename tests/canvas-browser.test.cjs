@@ -180,10 +180,17 @@ async function main() {
         assert.equal(await evaluate('themeManager.getCurrentThemeKey()'), block.targetThemeKey);
         await evaluate('themeManager.setTheme("light")');
     });
-    await check('four real origin corner buttons animate to profile, snake, tetris and default', async () => {
-        for (const [id, view] of [['canvas-entry','profile'],['canvas-snake-link','snake'],['canvas-tetris-link','tetris'],['canvas-home','default']]) {
+    await check('dragging leaves the homepage fixed and four corner buttons animate to their regions', async () => {
+        const homeLayout = () => evaluate('[...document.querySelectorAll("#homepage-content .header h1, #homepage-content .project-item")].map(element => element.getBoundingClientRect().toJSON())');
+        for (const [id, view] of [['canvas-entry','profile'],['canvas-tetris-link','tetris'],['canvas-snake-link','snake'],['canvas-home','default']]) {
             await resetDefault();
+            const beforeDrag = await homeLayout();
             await drag(await exposedGridPoint(), 220, 220);
+            assert.deepEqual(await homeLayout(), beforeDrag, 'canvas panning leaves title and project card positions unchanged');
+            assert.equal(await evaluate('getComputedStyle(document.getElementById("homepage-content")).visibility'), 'visible');
+            const expectedCell = { profile: [0, 0], tetris: [0, -1], snake: [-1, 0], default: [-1, -1] }[view];
+            const actualCell = await evaluate(`(() => {const r=document.getElementById(${JSON.stringify(id)}).getBoundingClientRect();const c=canvasController.getGridFromScreen(r.x+r.width/2,r.y+r.height/2);return [c.gridX,c.gridY];})()`);
+            assert.deepEqual(actualCell, expectedCell);
             const arrowSizes=await evaluate('[...document.querySelectorAll(".origin-arrow")].map(e=>{const r=e.getBoundingClientRect();return [Math.round(r.width),Math.round(r.height)];})');
             assert.deepEqual(arrowSizes,[[26,26],[26,26],[26,26],[26,26]]);
             assert.deepEqual(await evaluate('[canvasController.state.offsetX,canvasController.state.offsetY]'), [220,220]);
@@ -268,8 +275,8 @@ async function main() {
     });
     await check('game boards have two-cell axis gaps and working reset and cross-region links below them', async () => {
         await resetDefault(); await click('#canvas-explore'); await settleCamera();
-        assert.deepEqual(await evaluate('({...canvasController.regions.snake})'),{x:2,y:-14,w:12,h:12});
-        assert.deepEqual(await evaluate('({...canvasController.regions.tetris})'),{x:-12,y:2,w:10,h:16});
+        assert.deepEqual(await evaluate('({...canvasController.regions.snake})'),{x:-14,y:2,w:12,h:12});
+        assert.deepEqual(await evaluate('({...canvasController.regions.tetris})'),{x:2,y:-18,w:10,h:16});
         await navigate('snake');
         const snakeBounds=await evaluate('(() => {const c=canvasController,s=c.state,r=c.regions.snake,b=document.getElementById("canvas-snake-controls").getBoundingClientRect();return {top:b.top,bottom:b.bottom,boardBottom:s.offsetY+(r.y+r.h)*50*s.scale};})()');
         assert.ok(snakeBounds.top>snakeBounds.boardBottom && snakeBounds.bottom<1000);

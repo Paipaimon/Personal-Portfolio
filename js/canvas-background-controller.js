@@ -1,4 +1,4 @@
-/** The homepage, profile and automatic games share one grid coordinate system. */
+/** The profile and automatic games share the background grid coordinates. */
 class CanvasBackgroundController {
     constructor(canvas, themeManager) {
         this.canvas = canvas;
@@ -12,10 +12,10 @@ class CanvasBackgroundController {
         // Grid-cell bounds, independent of viewport size or camera position.
         this.regions = {
             profile: { x: -12, y: -10, w: 10, h: 9 },
-            snake: { x: 2, y: -14, w: 12, h: 12 },
-            tetris: { x: -12, y: 2, w: 10, h: 16 },
+            snake: { x: -14, y: 2, w: 12, h: 12 },
+            tetris: { x: 2, y: -18, w: 10, h: 16 },
             profileView: { x: -12, y: -10, w: 12, h: 10 },
-            overview: { x: -14, y: -16, w: 30, h: 36 }
+            overview: { x: -16, y: -20, w: 30, h: 36 }
         };
         this.snake = new CanvasGames.AutoSnake();
         this.tetris = new CanvasGames.AutoTetris();
@@ -42,10 +42,10 @@ class CanvasBackgroundController {
         this.exploreButton = document.getElementById('canvas-explore');
         this.nav = document.getElementById('canvas-nav');
         this.profile = document.getElementById('canvas-profile');
-        this.homepage = document.getElementById('homepage-content');
         this.snakeControls = document.getElementById('canvas-snake-controls');
         this.tetrisControls = document.getElementById('canvas-tetris-controls');
         CanvasProfile.render(this.profile, window.PORTFOLIO_PROFILE);
+        this.listen(document.getElementById('homepage-content'), 'dragstart', event => event.preventDefault());
         this.listen(this.entry, 'click', () => this.focusRegion('profile'));
         this.listen(this.exploreButton, 'click', () => this.enterExploration());
         document.querySelectorAll('[data-canvas-view]').forEach(button => {
@@ -197,6 +197,7 @@ class CanvasBackgroundController {
         });
         if (name === 'default') {
             this.setExploration(false);
+            document.body.classList.remove('canvas-section-open');
             this.defaultView = true;
             this.focusedView = name;
             this.moveCamera({ offsetX: 0, offsetY: 0, scale: 1 });
@@ -207,6 +208,7 @@ class CanvasBackgroundController {
             return;
         }
         if (!this.regions[name]) return;
+        document.body.classList.add('canvas-section-open');
         this.defaultView = false;
         this.focusedView = name;
         window.scrollTo(0, 0);
@@ -331,8 +333,8 @@ class CanvasBackgroundController {
         const { gridX, gridY } = this.getGridFromScreen(x, y);
         if (gridX === 0 && gridY === 0) { this.focusRegion('profile'); return; }
         if (gridX === -1 && gridY === -1) { this.focusRegion('default'); return; }
-        if (gridX === 0 && gridY === -1) { this.focusRegion('snake'); return; }
-        if (gridX === -1 && gridY === 0) { this.focusRegion('tetris'); return; }
+        if (gridX === 0 && gridY === -1) { this.focusRegion('tetris'); return; }
+        if (gridX === -1 && gridY === 0) { this.focusRegion('snake'); return; }
         const hit = this.state.erasableBlocks.find(block => block.gridX === gridX && block.gridY === gridY && !block.isClicked);
         if (hit) {
             hit.isClicked = true;
@@ -388,8 +390,8 @@ class CanvasBackgroundController {
         });
         ctx.globalAlpha = 1;
         this.drawRegion('profile', '01 / 关于我', '关于我 · 媒体与联系', theme);
-        this.drawRegion('snake', '02 / 自动贪吃蛇', `${this.snake.size} × ${this.snake.size} · 得分 ${this.snake.score}`, theme);
-        this.drawRegion('tetris', '03 / 自动俄罗斯方块', `10 × 16   ·   已消除 ${this.tetris.lines} 行`, theme);
+        this.drawRegion('tetris', '02 / 自动俄罗斯方块', `10 × 16   ·   已消除 ${this.tetris.lines} 行`, theme);
+        this.drawRegion('snake', '03 / 自动贪吃蛇', `${this.snake.size} × ${this.snake.size} · 得分 ${this.snake.score}`, theme);
         const snake = this.regions.snake;
         this.snake.body.forEach((cell, index) => {
             ctx.fillStyle = c.highlightColor;
@@ -446,7 +448,6 @@ class CanvasBackgroundController {
 
     syncWorldElements() {
         const { scale, offsetX, offsetY, width, height } = this.state;
-        this.homepage.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
         const r = this.regions.profile;
         const x = offsetX + r.x * 50 * scale, y = offsetY + r.y * 50 * scale;
         this.profile.hidden = x + r.w * 50 * scale < 0 || x > width || y + r.h * 50 * scale < 0 || y > height;
@@ -458,8 +459,8 @@ class CanvasBackgroundController {
         };
         place(this.entry, 0, 0, 50, 50);
         place(this.homeButton, -1, -1, 50, 50);
-        place(this.snakeLink, 0, -1, 50, 50);
-        place(this.tetrisLink, -1, 0, 50, 50);
+        place(this.tetrisLink, 0, -1, 50, 50);
+        place(this.snakeLink, -1, 0, 50, 50);
         for (const name of ['snake', 'tetris']) {
             const game = this.regions[name];
             const controls = name === 'snake' ? this.snakeControls : this.tetrisControls;
