@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width; initial-scale=1.0; maximum-scale=1.0">
+    <meta charset="utf-8">
+    <title>CpsTest</title>
+    <style type="text/css">
+        body {
+            user-select: none;
+            font-size: 20px;
+            text-align: center;
+            background-color: #f0f0f0;
+            font-family: 'Arial', sans-serif;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+		#show_time_title{
+			height: 60px;
+		}
+        #title {
+            font-size: 50px;
+            color: #007BFF;
+            margin-top: 20px;
+        }
+
+        #box {
+            width: 80%;
+            height: 80vh;
+            background-color: #00ffff;
+            border-radius: 10px;
+            margin: 20px auto;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        #box:hover {
+            background-color: #3ef2ff;
+        }
+
+        #number {
+            font-size: 100px;
+            color: #0064ff;
+            line-height: 200px;
+        }
+
+        #switch_time {
+            margin: 20px 0;
+        }
+
+        #switch_time label {
+            padding: 10px 20px;
+            background-color: #007BFF;
+            color: #fff;
+            border-radius: 5px;
+            margin: 0 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        #switch_time label:hover {
+            background-color: #0056b3;
+        }
+
+        #switch_time input[type="radio"] {
+            position: absolute;
+            clip: rect(0, 0, 0, 0);
+        }
+
+        #show_time {
+            font-size: 40px;
+            color: #333;
+        }
+
+        #show_time_font {
+            font-size: 20px;
+            color: #666;
+        }
+    </style>
+    <script type="text/javascript">
+        let timer = 0;
+        let number = 0; // 点击次数
+        let time = 0; // 时间
+        let setTime = 10; // 秒数
+        let showTimeNum;
+
+        function setTime1s() {
+            setTime = 1;
+            document.getElementById("set_time").innerText = setTime;
+        }
+
+        function setTime2s() {
+            setTime = 2;
+            document.getElementById("set_time").innerText = setTime;
+        }
+
+        function setTime5s() {
+            setTime = 5;
+            document.getElementById("set_time").innerText = setTime;
+        }
+
+        function setTime10s() {
+            setTime = 10;
+            document.getElementById("set_time").innerText = setTime;
+        }
+
+        function clicked() {
+            document.getElementById("switch_time").style.display = "none";
+            number++;
+            if (number === 1) {
+                time = setTimeout(judge, setTime * 1000);
+                showTimeNum = setInterval(showTime, 10);
+            }
+            document.getElementById("number").innerText = number;
+        }
+
+        function judge() {
+            clearInterval(showTimeNum);
+            alert("1秒点击次数(cps):" + (number / setTime).toFixed(2));
+            location.reload();
+        }
+
+        function showTime() {
+            timer++;
+            document.getElementById("show_time").innerText = (timer / 100).toFixed(2);
+        }
+    </script>
+</head>
+<body>
+    <div id="switch_time">
+        <div id="show_time_title">
+            <span id="set_time">10</span>秒钟要点击的速度
+        </div>
+        <input type="radio" name="switchTime" id="1s" onclick="setTime1s()"><label for="1s">1 S</label>
+        <input type="radio" name="switchTime" id="2s" onclick="setTime2s()"><label for="2s">2 S</label>
+        <input type="radio" name="switchTime" id="5s" onclick="setTime5s()"><label for="5s">5 S</label>
+        <input type="radio" name="switchTime" id="10s" onclick="setTime10s()"><label for="10s">10 S</label>
+    </div>
+    <div id="box" onclick="clicked()">
+        <div id="show_time">0.00</div>
+        <div id="show_time_font">Second</div>
+        <div id="number">0</div>
+        <div id="title">Click Here</div>
+    </div>
+</body>
+</html>

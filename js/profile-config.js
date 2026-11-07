@@ -13,7 +13,7 @@
         name: 'AckerLi',
         birthDate: '2004-11-16',
         title: '运维 / 程序 / 学生',
-        bio: '一个热爱技术的学生\n喜欢折腾各种软件和硬件\n偶尔写写代码',
+        bio: '一个热爱游戏和技术的学生\n喜欢折腾各种软件和硬件\n偶尔写写代码',
         location: '四川',
         avatar: 'assets/profile.png',
         links: [

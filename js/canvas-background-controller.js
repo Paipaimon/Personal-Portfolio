@@ -7,7 +7,7 @@ class CanvasBackgroundController {
         this.state = {
             width: 0, height: 0, offsetX: 0, offsetY: 0, scale: 1,
             isDragging: false, hasMouse: false, hoverX: 0, hoverY: 0,
-            erasableBlocks: [], maxErasableBlocks: 100, frameCount: 0, fps: 60
+            erasableBlocks: [], maxErasableBlocks: 400, frameCount: 0, fps: 60
         };
         // Grid-cell bounds, independent of viewport size or camera position.
         this.regions = {
@@ -342,7 +342,7 @@ class CanvasBackgroundController {
     }
 
     generateInteractiveBlocks(x, y) {
-        if (this.state.erasableBlocks.length >= this.state.maxErasableBlocks || Math.random() >= 0.02) return;
+        if (this.state.erasableBlocks.length >= this.state.maxErasableBlocks || Math.random() >= 0.04) return;
         const { gridX, gridY } = this.getGridFromScreen(x, y);
         if ((gridX === 0 || gridX === -1) && (gridY === 0 || gridY === -1)) return;
         if (['profile', 'snake', 'tetris'].some(name => {
