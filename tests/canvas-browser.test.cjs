@@ -182,13 +182,29 @@ async function main() {
     });
     await check('dragging leaves the homepage fixed and four corner buttons animate to their regions', async () => {
         const homeLayout = () => evaluate('[...document.querySelectorAll("#homepage-content .header h1, #homepage-content .project-item")].map(element => element.getBoundingClientRect().toJSON())');
-        for (const [id, view] of [['canvas-entry','profile'],['canvas-tetris-link','tetris'],['canvas-snake-link','snake'],['canvas-home','default']]) {
+        try {
+            const cardWinsHitTest = await evaluate(`(() => {
+                const card = document.querySelector('.project-item');
+                card.scrollIntoView({block: 'center'});
+                const rect = card.getBoundingClientRect();
+                const x = rect.x + rect.width / 2;
+                const y = rect.y + rect.height / 2;
+                canvasController.state.offsetX = x - 25;
+                canvasController.state.offsetY = y - 25;
+                canvasController.draw();
+                return !document.getElementById('canvas-entry').hidden && card.contains(document.elementFromPoint(x, y));
+            })()`);
+            assert.ok(cardWinsHitTest, 'a project card stays above an overlapping canvas button');
+        } finally {
+            await resetDefault();
+        }
+        for (const [id, view] of [['canvas-entry','profile'],['canvas-snake-link','snake'],['canvas-tetris-link','tetris'],['canvas-home','default']]) {
             await resetDefault();
             const beforeDrag = await homeLayout();
             await drag(await exposedGridPoint(), 220, 220);
             assert.deepEqual(await homeLayout(), beforeDrag, 'canvas panning leaves title and project card positions unchanged');
             assert.equal(await evaluate('getComputedStyle(document.getElementById("homepage-content")).visibility'), 'visible');
-            const expectedCell = { profile: [0, 0], tetris: [0, -1], snake: [-1, 0], default: [-1, -1] }[view];
+            const expectedCell = { profile: [0, 0], snake: [0, -1], tetris: [-1, 0], default: [-1, -1] }[view];
             const actualCell = await evaluate(`(() => {const r=document.getElementById(${JSON.stringify(id)}).getBoundingClientRect();const c=canvasController.getGridFromScreen(r.x+r.width/2,r.y+r.height/2);return [c.gridX,c.gridY];})()`);
             assert.deepEqual(actualCell, expectedCell);
             const arrowSizes=await evaluate('[...document.querySelectorAll(".origin-arrow")].map(e=>{const r=e.getBoundingClientRect();return [Math.round(r.width),Math.round(r.height)];})');

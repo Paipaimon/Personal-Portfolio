@@ -145,7 +145,7 @@ test('game edges stay two cells from both axes and reset controls follow their b
 test('all four origin corner links animate to their target while preserving normal-mode scale', () => {
     const h = harness({ reducedMotion: false }), c = h.controller;
     const regions = JSON.stringify(c.regions);
-    for (const [x, y, view] of [[0, 0, 'profile'], [0, -1, 'tetris'], [-1, 0, 'snake'], [-1, -1, 'default']]) {
+    for (const [x, y, view] of [[0, 0, 'profile'], [0, -1, 'snake'], [-1, 0, 'tetris'], [-1, -1, 'default']]) {
         const point = h.screen(x, y);
         const before = [c.state.offsetX, c.state.offsetY, c.state.scale];
         c.clickAt(point.x, point.y);

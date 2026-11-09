@@ -333,8 +333,8 @@ class CanvasBackgroundController {
         const { gridX, gridY } = this.getGridFromScreen(x, y);
         if (gridX === 0 && gridY === 0) { this.focusRegion('profile'); return; }
         if (gridX === -1 && gridY === -1) { this.focusRegion('default'); return; }
-        if (gridX === 0 && gridY === -1) { this.focusRegion('tetris'); return; }
-        if (gridX === -1 && gridY === 0) { this.focusRegion('snake'); return; }
+        if (gridX === 0 && gridY === -1) { this.focusRegion('snake'); return; }
+        if (gridX === -1 && gridY === 0) { this.focusRegion('tetris'); return; }
         const hit = this.state.erasableBlocks.find(block => block.gridX === gridX && block.gridY === gridY && !block.isClicked);
         if (hit) {
             hit.isClicked = true;
@@ -459,8 +459,8 @@ class CanvasBackgroundController {
         };
         place(this.entry, 0, 0, 50, 50);
         place(this.homeButton, -1, -1, 50, 50);
-        place(this.tetrisLink, 0, -1, 50, 50);
-        place(this.snakeLink, -1, 0, 50, 50);
+        place(this.snakeLink, 0, -1, 50, 50);
+        place(this.tetrisLink, -1, 0, 50, 50);
         for (const name of ['snake', 'tetris']) {
             const game = this.regions[name];
             const controls = name === 'snake' ? this.snakeControls : this.tetrisControls;
