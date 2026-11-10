@@ -166,6 +166,44 @@ async function main() {
         await screenshot('desktop-default');
     });
     if (process.env.CANVAS_QA_DEFAULT_ONLY) return;
+    const visibleProjectTypes = () => evaluate('[...document.querySelectorAll(".project-item:not([hidden])")].map(card => card.dataset.projectType)');
+    const projectTypes = () => evaluate('PROJECTS_DATA.map(project => project.type)');
+    const projectAnimations = () => evaluate('document.getElementById("projectList").getAnimations({ subtree: true }).filter(animation => animation.id === "project-filter").length');
+    await check('project categories count, filter and animate the existing cards', async () => {
+        const types = await projectTypes();
+        const labels = { Game: '游戏', Tool: '工具', Animation: '动画' };
+        const categories = [...new Set(types)];
+        assert.deepEqual(await evaluate('[...document.querySelectorAll(".project-category")].map(button => button.textContent)'), [
+            `全部${types.length}`, ...categories.map(type => `${labels[type] ?? type}${types.filter(value => value === type).length}`)
+        ]);
+        assert.deepEqual(await visibleProjectTypes(), types);
+        await click('.scroll-arrow');
+        await waitFor(() => evaluate('Math.abs(document.getElementById("projectCatalog").getBoundingClientRect().top - 64) <= 2'), 'scroll to the project categories');
+
+        const toolButton = `.project-category:nth-child(${categories.indexOf('Tool') + 2})`;
+        await click(toolButton);
+        const tools = types.filter(type => type === 'Tool');
+        assert.deepEqual(await visibleProjectTypes(), tools);
+        assert.equal(await evaluate('document.getElementById("projectResultCount").textContent'), `${tools.length} 个项目`);
+        assert.ok(await projectAnimations());
+        assert.equal(await evaluate(`document.querySelector(${JSON.stringify(toolButton)}).getAttribute('aria-pressed')`), 'true');
+        await click(`.project-category:nth-child(${categories.indexOf('Game') + 2})`);
+        assert.deepEqual(await visibleProjectTypes(), types.filter(type => type === 'Game'));
+        await click(toolButton);
+
+        const selectedBackground = () => evaluate('getComputedStyle(document.querySelector(".project-category[aria-pressed=true]")).backgroundImage');
+        const lightBackground = await selectedBackground();
+        await evaluate(`themeManager.setTheme('dark')`);
+        assert.deepEqual(await visibleProjectTypes(), tools);
+        assert.notEqual(await selectedBackground(), lightBackground);
+        await screenshot('desktop-project-categories');
+        await evaluate(`themeManager.setTheme('light'); document.querySelector('.project-category').focus()`);
+        await send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Enter', code: 'Enter', text: '\r', unmodifiedText: '\r', windowsVirtualKeyCode: 13 });
+        await send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 });
+        assert.deepEqual(await visibleProjectTypes(), types);
+        await waitFor(async () => await projectAnimations() === 0, 'project card animations finish');
+        await evaluate('document.activeElement.blur(); window.scrollTo(0,0)');
+    });
     await check('normal wheel and Ctrl-wheel never zoom, while random theme blocks remain clickable', async () => {
         const point = await exposedGridPoint();
         await wheel(point); await wheel(point, true); await delay(150);
@@ -238,7 +276,7 @@ async function main() {
     });
     await check('local profile avatar loads and responds to hover, click, keyboard and reduced motion', async () => {
         await waitFor(()=>evaluate('document.querySelector(".canvas-profile-avatar-button img")?.naturalWidth > 0'),'local avatar image');
-        assert.equal(await evaluate('new URL(document.querySelector(".canvas-profile-avatar-button img").src).pathname'), '/assets/profile.png');
+        assert.equal(await evaluate('document.querySelector(".canvas-profile-avatar-button img").src'), await evaluate('new URL(PORTFOLIO_PROFILE.avatar, document.baseURI).href'));
         const point=await evaluate('(() => { const r=document.querySelector(".canvas-profile-avatar-button").getBoundingClientRect(); return {x:r.right-7,y:r.top+7}; })()');
         await send('Input.dispatchMouseEvent',{type:'mouseMoved',...point});
         assert.ok(await evaluate('Math.abs(parseFloat(document.querySelector(".canvas-profile-avatar-button").style.getPropertyValue("--avatar-rx")))') > 0);
@@ -377,6 +415,22 @@ async function main() {
         assert.deepEqual(await evaluate('[canvasController.exploring,canvasController.state.offsetX,canvasController.state.offsetY,canvasController.state.scale]'),[false,0,0,1]);
         assert.deepEqual(await evaluate('[innerWidth,innerHeight]'),[390,844]);
         await screenshot('mobile-default');
+    });
+    await check('mobile project categories fit and respect reduced motion', async () => {
+        await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
+        await evaluate('document.getElementById("projectCatalog").scrollIntoView()');
+        const buttons = await evaluate(`[...document.querySelectorAll('.project-category')].map(button => {
+            const {left,right,top,bottom} = button.getBoundingClientRect();
+            return { label: button.firstChild.textContent, x: (left+right)/2, y: (top+bottom)/2, fits: left>=0 && right<=innerWidth };
+        })`);
+        assert.ok(buttons.every(button => button.fits));
+        const { x, y } = buttons.find(button => button.label === '动画');
+        await send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
+        await send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+        assert.deepEqual(await visibleProjectTypes(), (await projectTypes()).filter(type => type === 'Animation'));
+        assert.equal(await projectAnimations(), 0);
+        assert.equal(await evaluate(`getComputedStyle(document.querySelector('.project-category[aria-pressed=true]'), '::after').content`), 'none');
+        await screenshot('mobile-project-categories');
     });
     await check('no page errors', async () => { assert.deepEqual(errors, []); });
     console.log(`Screenshots: ${screenshots}`);

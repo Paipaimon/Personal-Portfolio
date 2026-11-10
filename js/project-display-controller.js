@@ -6,6 +6,7 @@
 class ProjectDisplayController {
     constructor(projectsData) {
         this.projects = projectsData || PROJECTS_DATA;
+        this.activeType = null;
     }
 
     /**
@@ -93,10 +94,16 @@ class ProjectDisplayController {
         
         // 清空现有内容
         projectList.innerHTML = '';
-        
+
+        const counts = new Map();
+        this.projects.forEach(({ type }) => counts.set(type, (counts.get(type) || 0) + 1));
+        if (!counts.has(this.activeType)) this.activeType = null;
+
         // 添加项目卡片
         this.projects.forEach(project => {
             const projectCard = this.createProjectCard(project);
+            projectCard.dataset.projectType = project.type;
+            projectCard.hidden = this.activeType !== null && project.type !== this.activeType;
             projectList.appendChild(projectCard);
         });
         
@@ -108,7 +115,78 @@ class ProjectDisplayController {
             item.style.pointerEvents = 'auto';
         });
 
+        this.renderProjectFilters(projectList, counts);
         console.log(`已渲染 ${this.projects.length} 个项目`);
+    }
+
+    renderProjectFilters(projectList, counts) {
+        const filters = document.getElementById('projectFilters');
+        const resultCount = document.getElementById('projectResultCount');
+        if (!filters || !resultCount) return;
+
+        const labels = new Map([[null, '全部'], ['Game', '游戏'], ['Tool', '工具'], ['Animation', '动画']]);
+        const buttons = [[null, this.projects.length], ...counts].map(([type, count]) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'project-category';
+            button.setAttribute('aria-pressed', String(this.activeType === type));
+            button.setAttribute('aria-controls', projectList.id);
+
+            const badge = document.createElement('span');
+            badge.className = 'project-category-count';
+            badge.textContent = count;
+            button.append(labels.get(type) ?? type, badge);
+
+            button.addEventListener('click', () => {
+                if (this.activeType === type) return;
+                filters.querySelector('[aria-pressed="true"]').setAttribute('aria-pressed', 'false');
+                button.setAttribute('aria-pressed', 'true');
+                this.filterProjects(projectList, type);
+                resultCount.textContent = `${count} 个项目`;
+            });
+            return button;
+        });
+        filters.replaceChildren(...buttons);
+        resultCount.textContent = `${counts.get(this.activeType) ?? this.projects.length} 个项目`;
+    }
+
+    filterProjects(projectList, type) {
+        this.activeType = type;
+        const cards = [...projectList.children];
+        const matchesType = card => type === null || card.dataset.projectType === type;
+        const visibleCards = cards.filter(matchesType);
+        const animate = !matchMedia('(prefers-reduced-motion: reduce)').matches;
+        // Read the current positions before canceling any in-flight motion or changing the grid.
+        const previousPositions = new Map();
+        if (animate) {
+            for (const card of visibleCards) {
+                if (!card.hidden) previousPositions.set(card, card.getBoundingClientRect());
+            }
+        }
+        for (const animation of projectList.getAnimations({ subtree: true })) {
+            if (animation.id === 'project-filter') animation.cancel();
+        }
+        for (const card of cards) {
+            card.hidden = !matchesType(card);
+        }
+        if (!animate) return;
+
+        const positions = visibleCards.map(card => card.getBoundingClientRect());
+        visibleCards.forEach((card, index) => {
+            const previous = previousPositions.get(card);
+            const current = positions[index];
+            const timing = { id: 'project-filter', duration: 420, easing: 'cubic-bezier(.2, .75, .25, 1)' };
+            if (previous) {
+                const dx = previous.left - current.left;
+                const dy = previous.top - current.top;
+                if (dx || dy) card.animate([{ translate: `${dx}px ${dy}px` }, { translate: '0px 0px' }], timing);
+            } else {
+                card.animate([
+                    { opacity: 0, translate: '0px 22px', scale: '0.97' },
+                    { opacity: 1, translate: '0px 0px', scale: '1' }
+                ], { ...timing, delay: Math.min(index, 7) * 36, fill: 'backwards' });
+            }
+        });
     }
 
     /**

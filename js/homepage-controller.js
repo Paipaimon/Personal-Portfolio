@@ -87,11 +87,10 @@ class HomepageController {
         const scrollHint = document.querySelector('.scroll-hint');
         if (scrollHint) {
             scrollHint.addEventListener('click', () => {
-                const projectList = document.getElementById('projectList');
-                if (projectList) {
-                    // 平滑滚动到项目列表
-                    projectList.scrollIntoView({
-                        behavior: 'smooth',
+                const projectCatalog = document.getElementById('projectCatalog');
+                if (projectCatalog) {
+                    projectCatalog.scrollIntoView({
+                        behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
                         block: 'start'
                     });
                     

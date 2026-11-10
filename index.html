@@ -240,6 +240,121 @@
             z-index: 1;
         }
 
+        .project-catalog {
+            min-height: calc(100svh - 64px);
+            scroll-margin-top: 64px;
+        }
+
+        .project-catalog-heading {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            gap: 8px 16px;
+            margin-bottom: 14px;
+            color: var(--homepage-stat-color);
+            text-shadow: 0 1px 8px var(--homepage-shadow-color);
+        }
+
+        .project-catalog-heading h2 {
+            font-size: 1.35rem;
+        }
+
+        #projectResultCount {
+            font-size: 0.85rem;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .project-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .project-category {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 44px;
+            padding: 6px 13px;
+            border: 1px solid var(--homepage-card-border);
+            border-radius: 100px;
+            overflow: hidden;
+            background: var(--homepage-card-bg);
+            color: var(--homepage-text-color);
+            font: inherit;
+            font-size: 0.9rem;
+            font-weight: 650;
+            cursor: pointer;
+            pointer-events: auto;
+            box-shadow: 0 3px 12px var(--homepage-shadow-color);
+            transition: translate 180ms ease, scale 180ms ease, color 250ms ease, box-shadow 250ms ease !important;
+        }
+
+        .project-category-count {
+            min-width: 1.7em;
+            padding: 2px 5px;
+            border-radius: 100px;
+            background: var(--homepage-card-border);
+            text-align: center;
+            font-size: 0.75rem;
+            font-variant-numeric: tabular-nums;
+        }
+
+        @media (hover: hover) {
+            .project-category:hover {
+                translate: 0 -3px;
+            }
+        }
+
+        .project-category:active {
+            scale: 0.96;
+        }
+
+        .project-category:focus-visible {
+            outline: 2px solid var(--homepage-stat-color);
+            outline-offset: 3px;
+        }
+
+        .project-category[aria-pressed="true"] {
+            background: linear-gradient(#0002, #0002), var(--homepage-link-bg);
+            color: #fff;
+            box-shadow: 0 4px 18px var(--homepage-link-shadow);
+        }
+
+        .project-category[aria-pressed="true"] .project-category-count {
+            background: #0003;
+        }
+
+        .project-category[aria-pressed="true"]::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(110deg, transparent 30%, #fff8 50%, transparent 70%);
+            pointer-events: none;
+            animation: category-sweep 600ms ease-out both;
+        }
+
+        @keyframes category-sweep {
+            from { transform: translateX(-100%); }
+            to { transform: translateX(100%); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .project-category:is(:hover, :active) {
+                translate: none;
+                scale: none;
+            }
+
+            .project-category {
+                transition: none !important;
+            }
+
+            .project-category[aria-pressed="true"]::after {
+                content: none;
+            }
+        }
+
         .project-list {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -252,7 +367,7 @@
             transform: translateY(0) scale(1);
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             /* 确保项目列表在header下方显示 */
-            margin-top: 40px;
+            margin-top: 20px;
             position: relative;
             top: 0;
         }
@@ -492,6 +607,15 @@
         }
 
         @media (max-width: 480px) {
+            .project-filters {
+                gap: 6px;
+            }
+
+            .project-category {
+                gap: 6px;
+                padding-inline: 8px;
+            }
+
             .header h1 {
                 font-size: 2rem;
             }
@@ -623,7 +747,14 @@
                 <div class="scroll-arrow"><a name="projectsList">↓</a></div>
             </div>
         </div>
-        <div class="project-list" id="projectList"></div>
+        <section class="project-catalog" id="projectCatalog" aria-labelledby="projectCatalogTitle">
+            <div class="project-catalog-heading">
+                <h2 id="projectCatalogTitle">项目分类</h2>
+                <p id="projectResultCount" role="status"></p>
+            </div>
+            <div class="project-filters" id="projectFilters" role="group" aria-labelledby="projectCatalogTitle"></div>
+            <div class="project-list" id="projectList"></div>
+        </section>
     </div>
 
     <footer style="text-align: center; padding: 10px; font-size: small;">
