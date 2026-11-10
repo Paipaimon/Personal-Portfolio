@@ -86,15 +86,6 @@ const PROJECTS_DATA = [
         folder: 'projects/pi-memory'
     },
     {
-        name: 'Expanding Circle Challenge',
-        title: '膨胀圆圈挑战',
-        type: 'Game',
-        description: '一款极高难度的反应力挑战游戏。玩家需要根据中心颜色的切换快速反应按住对应的键来填充圆圈。',
-        tags: ['AI','Canvas', 'Game Loop', 'Reaction'],
-        icon: '⭕',
-        folder: 'projects/fill-ring'
-    },
-    {
         name: 'Color Blind Runner',
         title: 'Color Blind Runner',
         type: 'Game',
@@ -113,6 +104,25 @@ const PROJECTS_DATA = [
         icon: '🔵',
         folder: 'color-siege-game',
         url: 'https://game2.jlands.cn'
+    },
+    {
+        name: 'TankFight',
+        title: '装甲前线',
+        type: 'Game',
+        description: '基于 Node.js 的在线多人坦克大战，支持四款战车、随机关卡、道具补给与精英 Boss，最多四人合作闯关并适配移动端。',
+        tags: ['AI', 'Node.js', 'HTML Canvas', 'JavaScript', 'Multiplayer', 'Mobile'],
+        icon: '🪖',
+        folder: 'tank-fight',
+        url: 'https://fun.jlands.cn'
+    },
+    {
+        name: 'Expanding Circle Challenge',
+        title: '膨胀圆圈挑战',
+        type: 'Game',
+        description: '一款极高难度的反应力挑战游戏。玩家需要根据中心颜色的切换快速反应按住对应的键来填充圆圈。',
+        tags: ['AI','Canvas', 'Game Loop', 'Reaction'],
+        icon: '⭕',
+        folder: 'projects/fill-ring'
     },
     {
         name: '2D Miner Game',
@@ -142,15 +152,14 @@ const PROJECTS_DATA = [
         folder: 'projects/grid-painting'
     },
     {
-    name: 'TankFight',
-    title: '装甲前线',
-    type: 'Game',
-    description: '基于 Node.js 的在线多人坦克大战，支持四款战车、随机关卡、道具补给与精英 Boss，最多四人合作闯关并适配移动端。',
-    tags: ['AI', 'Node.js', 'HTML Canvas', 'JavaScript', 'Multiplayer', 'Mobile'],
-    icon: '🪖',
-    folder: 'tank-fight',
-    url: 'https://fun.jlands.cn'
-},
+        name: 'Colorful Blur BG',
+        title: '彩色模糊背景',
+        type: 'Animation',
+        description: '基于 Canvas 的彩色模糊背景动画。',
+        tags: ['AI','Canvas', 'Animation', 'Blur'],
+        icon: '🌈',
+        folder: 'projects/colorful-blur-bg'
+    }
 ];
 
 // 导出项目数据供其他模块使用

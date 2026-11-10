@@ -15,7 +15,7 @@
         title: '运维 / 程序 / 学生',
         bio: '一个热爱游戏和技术的学生\n喜欢折腾各种软件和硬件\n偶尔写写代码',
         location: '四川',
-        avatar: 'assets/profile.png',
+        avatar: 'assets/profile.jpg',
         links: [
             { label: '哔哩哔哩', icon: 'bilibili', url: 'https://space.bilibili.com/33230715' },
             { label: '网易云音乐', icon: 'netease', url: 'https://music.163.com/#/user/home?id=482756030' },
